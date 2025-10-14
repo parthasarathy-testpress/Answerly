@@ -5,13 +5,9 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 
 
-class BaseModel(models.Model):
+class TimeStampedModel(models.Model):
     """
     Abstract base model that provides common timestamp fields.
-
-    Fields:
-        created_at (DateTimeField): Timestamp when the object was created.
-        updated_at (DateTimeField): Timestamp when the object was last updated.
     """
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -21,7 +17,7 @@ class BaseModel(models.Model):
         abstract = True
 
 
-class Question(BaseModel):
+class Question(TimeStampedModel):
     """
     Represents a question posted by a user in the Q&A platform.
 
@@ -50,13 +46,10 @@ class Question(BaseModel):
     votes = GenericRelation("Vote", related_query_name="questions")
 
     def __str__(self):
-        """
-        Return a human-readable representation of the question.
-        """
         return self.title
 
 
-class Answer(BaseModel):
+class Answer(TimeStampedModel):
     """
     Represents an answer posted to a question.
 
@@ -83,13 +76,10 @@ class Answer(BaseModel):
     votes = GenericRelation("Vote", related_query_name="answers")
 
     def __str__(self):
-        """
-        Return a human-readable representation of the answer.
-        """
         return f"Answer by {self.author.username} to '{self.question.title}'"
 
 
-class Comment(BaseModel):
+class Comment(TimeStampedModel):
     """
     Represents a comment on a question, answer, or another comment.
 
@@ -135,13 +125,10 @@ class Comment(BaseModel):
     )
 
     def __str__(self):
-        """
-        Return a human-readable representation of the comment.
-        """
         return f"Comment by {self.author.username}"
 
 
-class Vote(BaseModel):
+class Vote(TimeStampedModel):
     """
     Represents a vote (upvote or downvote) on a question, answer, or comment.
 
@@ -180,7 +167,4 @@ class Vote(BaseModel):
         unique_together = ("user", "content_type", "object_id")
 
     def __str__(self):
-        """
-        Return a human-readable representation of the vote.
-        """
         return f"{self.get_vote_type_display()} by {self.user.username}"
