@@ -1,0 +1,72 @@
+# Python compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+
+# Django stuff:
+*.log
+*.pot
+*.pyc
+*.sqlite3
+*.py[cod]
+db.sqlite3
+db.sqlite3-journal
+*.mo
+*.swp
+.DS_Store
+
+# Django migrations
+*/migrations/*.pyc
+*/migrations/*.py[cod]
+*/migrations/__pycache__/
+*/migrations/*.pyo
+
+# Media files
+/media/
+uploads/
+
+# Static files (if collected)
+staticfiles/
+static/
+
+# PyCharm, VSCode, and other IDEs
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Environment variables
+.env
+.env.*
+
+# Coverage reports
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Logs
+*.log
+
+# Node modules (if using frontend)
+node_modules/
+
+# Byte-compiled / optimized / DLL files
+*.pyc
+*.pyo
+*.pyd
+*.so
+
+# Others
+*.bak
+*.swp
+*.tmp
