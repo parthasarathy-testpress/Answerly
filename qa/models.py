@@ -10,8 +10,8 @@ class TimeStampedModel(models.Model):
     Abstract base model that provides common timestamp fields.
     """
 
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True, help_text="Date and time when the object was created.")
+    updated_at = models.DateTimeField(auto_now=True, help_text="Date and time when the object was last updated.")
 
     class Meta:
         abstract = True
@@ -20,30 +20,23 @@ class TimeStampedModel(models.Model):
 class Question(TimeStampedModel):
     """
     Represents a question posted by a user in the Q&A platform.
-
-    Fields:
-        title (CharField): The title of the question.
-        description (TextField): Detailed description of the question.
-        author (ForeignKey): The user who posted the question.
-        tags (TaggableManager): Tags associated with the question.
-        votes (GenericRelation): Votes associated with the question.
     """
 
     title = models.CharField(
         max_length=255,
-        help_text="Enter the title of the question (max 255 characters).",
+        help_text="Enter a concise title for your question (max 255 characters).",
     )
     description = models.TextField(
-        help_text="Provide a detailed description of your question."
+        help_text="Provide a detailed explanation of your question."
     )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name="questions",
-        help_text="The user who is posting this question.",
+        help_text="Select the user who is posting this question.",
     )
-    tags = TaggableManager(help_text="Add tags to categorize your question.")
-    votes = GenericRelation("Vote", related_query_name="questions")
+    tags = TaggableManager(help_text="Add relevant tags to categorize and improve discoverability of your question.")
+    votes = GenericRelation("Vote", related_query_name="questions", help_text="All votes (upvotes/downvotes) associated with this question.")
 
     def __str__(self):
         return self.title
@@ -52,12 +45,6 @@ class Question(TimeStampedModel):
 class Answer(TimeStampedModel):
     """
     Represents an answer posted to a question.
-
-    Fields:
-        question (ForeignKey): The question this answer belongs to.
-        author (ForeignKey): User who posted the answer.
-        content (TextField): The text content of the answer.
-        votes (GenericRelation): Votes associated with this answer.
     """
 
     question = models.ForeignKey(
@@ -70,10 +57,10 @@ class Answer(TimeStampedModel):
         User,
         on_delete=models.CASCADE,
         related_name="answers",
-        help_text="The user who posted this answer.",
+        help_text="Select the user who is posting this answer.",
     )
-    content = models.TextField(help_text="Write the content of your answer here.")
-    votes = GenericRelation("Vote", related_query_name="answers")
+    content = models.TextField(help_text="Write your answer here.")
+    votes = GenericRelation("Vote", related_query_name="answers", help_text="All votes (upvotes/downvotes) associated with this answer.")
 
     def __str__(self):
         return f"Answer by {self.author.username} to '{self.question.title}'"
@@ -82,21 +69,12 @@ class Answer(TimeStampedModel):
 class Comment(TimeStampedModel):
     """
     Represents a comment on a question, answer, or another comment.
-
-    Fields:
-        content_type (ForeignKey): The type of object this comment is attached to.
-        object_id (PositiveIntegerField): The ID of the object this comment is attached to.
-        content_object (GenericForeignKey): Generic relation to the object being commented on.
-        author (ForeignKey): User who posted the comment.
-        content (TextField): The text content of the comment.
-        parent (ForeignKey): Optional parent comment for threaded replies.
-        votes (GenericRelation): Votes associated with this comment.
     """
 
     content_type = models.ForeignKey(
         ContentType,
         on_delete=models.CASCADE,
-        help_text="The type of object this comment is attached to.",
+        help_text="The type of object this comment is attached to (Question, Answer, or Comment).",
     )
     object_id = models.PositiveIntegerField(
         help_text="The ID of the object this comment is attached to."
@@ -107,7 +85,7 @@ class Comment(TimeStampedModel):
         User,
         on_delete=models.CASCADE,
         related_name="comments",
-        help_text="The user who posted this comment.",
+        help_text="Select the user who is posting this comment.",
     )
     content = models.TextField(help_text="Write the content of your comment here.")
     parent = models.ForeignKey(
@@ -116,12 +94,12 @@ class Comment(TimeStampedModel):
         blank=True,
         on_delete=models.CASCADE,
         related_name="replies",
-        help_text="Parent comment if this is a reply.",
+        help_text="If this is a reply, select the parent comment.",
     )
     votes = GenericRelation(
         "Vote",
         related_query_name="comments",
-        help_text="Votes associated with this comment.",
+        help_text="All votes (upvotes/downvotes) associated with this comment.",
     )
 
     def __str__(self):
@@ -131,16 +109,6 @@ class Comment(TimeStampedModel):
 class Vote(TimeStampedModel):
     """
     Represents a vote (upvote or downvote) on a question, answer, or comment.
-
-    Fields:
-        user (ForeignKey): User who cast the vote.
-        vote_type (SmallIntegerField): Type of vote (1 for upvote, -1 for downvote).
-        content_type (ForeignKey): Type of object being voted on.
-        object_id (PositiveIntegerField): ID of the object being voted on.
-        content_object (GenericForeignKey): Generic relation to the object being voted on.
-
-    Constraints:
-        unique_together: Ensures a user can vote only once per object.
     """
 
     class VoteType(models.IntegerChoices):
@@ -148,19 +116,19 @@ class Vote(TimeStampedModel):
         DOWNVOTE = -1, "Downvote"
 
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, help_text="The user who cast this vote."
+        User, on_delete=models.CASCADE, help_text="Select the user who is casting this vote."
     )
 
     vote_type = models.SmallIntegerField(
-        choices=VoteType.choices, help_text="Select 1 for Upvote or -1 for Downvote."
+        choices=VoteType.choices, help_text="Choose 'Upvote' for +1 or 'Downvote' for -1."
     )
 
     content_type = models.ForeignKey(
         ContentType,
         on_delete=models.CASCADE,
-        help_text="The type of object being voted on.",
+        help_text="The type of object being voted on (Question, Answer, or Comment).",
     )
-    object_id = models.PositiveIntegerField()
+    object_id = models.PositiveIntegerField(help_text="The ID of the object being voted on.")
     content_object = GenericForeignKey("content_type", "object_id")
 
     class Meta:
