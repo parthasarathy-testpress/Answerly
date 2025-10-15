@@ -7,7 +7,7 @@ from .forms import UserRegisterForm
 class SignupView(FormView):
     template_name = 'accounts/signup.html'
     form_class = UserRegisterForm
-    success_url = reverse_lazy('question_list')
+    success_url = '/'
 
     def form_valid(self, form):
         user = form.save()
