@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
                 ('content', models.TextField(help_text='Write the content of your comment here.')),
                 ('author', models.ForeignKey(help_text='Select the user who is posting this comment.', on_delete=django.db.models.deletion.CASCADE, related_name='comments', to=settings.AUTH_USER_MODEL)),
                 ('content_type', models.ForeignKey(help_text='The type of object this comment is attached to (Question, Answer, or Comment).', on_delete=django.db.models.deletion.CASCADE, to='contenttypes.contenttype')),
-                ('parent', models.ForeignKey(blank=True, help_text='If this is a reply, select the parent comment.', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='replies', to='qa.comment')),
+                ('parent', models.ForeignKey(blank=True, help_text='If this is a reply, select the parent comment.', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='replies', to='forum.comment')),
             ],
             options={
                 'abstract': False,
@@ -56,7 +56,7 @@ class Migration(migrations.Migration):
                 ('updated_at', models.DateTimeField(auto_now=True, help_text='Date and time when the object was last updated.')),
                 ('content', models.TextField(help_text='Write your answer here.')),
                 ('author', models.ForeignKey(help_text='Select the user who is posting this answer.', on_delete=django.db.models.deletion.CASCADE, related_name='answers', to=settings.AUTH_USER_MODEL)),
-                ('question', models.ForeignKey(help_text='The question this answer belongs to.', on_delete=django.db.models.deletion.CASCADE, related_name='answers', to='qa.question')),
+                ('question', models.ForeignKey(help_text='The question this answer belongs to.', on_delete=django.db.models.deletion.CASCADE, related_name='answers', to='forum.question')),
             ],
             options={
                 'abstract': False,
