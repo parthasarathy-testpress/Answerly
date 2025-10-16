@@ -18,7 +18,6 @@ class SignupView(FormView):
         return super().form_valid(form)
 
 class CustomPasswordResetView(SuccessMessageMixin, PasswordResetView):
-    template_name = 'registration/password_reset_form.html'
     html_email_template_name = 'registration/password_reset_email.html'
     success_url = reverse_lazy('password_reset_done')
     success_message = "Password reset email sent!"
