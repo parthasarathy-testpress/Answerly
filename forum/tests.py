@@ -16,7 +16,7 @@ class QuestionListViewTests(TestCase):
                 author=self.user
             )
 
-        question1 = Question.objects.first()
+        question1 = Question.objects.latest('created_at')
         question1.votes.create(user=self.user, vote_type=1)
         question1.votes.create(user=self.user2, vote_type=-1)
 

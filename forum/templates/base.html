@@ -38,7 +38,7 @@
         <div class="collapse navbar-collapse" id="navbarContent">
           <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
             <li class="nav-item">
-              <a class="nav-link" href={%url "question_list" %}>Questions</a>
+              <a class="nav-link" href="{% url 'question_list' %}">Questions</a>
             </li>
             <li class="nav-item">
               <a class="nav-link" href="#">Ask Question</a>
@@ -94,7 +94,7 @@
     <!-- Footer -->
     <footer class="bg-dark text-light text-center py-3 mt-auto">
       <div class="container">
-        <p class="mb-0">&copy; {{ now|date:"Y" }} Q&A Platform. All Rights Reserved.</p>
+              <p class="mb-0">&copy; {% now "Y" %} Q&A Platform. All Rights Reserved.</p>
       </div>
     </footer>
 
