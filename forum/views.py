@@ -4,7 +4,7 @@ from .models import Question, Vote
 
 class QuestionListView(ListView):
     model = Question
-    template_name = 'qa/question_list.html'
+    template_name = 'forum/question_list.html'
     context_object_name = 'questions'
     paginate_by = 10
 

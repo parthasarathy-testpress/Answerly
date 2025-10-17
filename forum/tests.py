@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from qa.models import Question
+from forum.models import Question
 
 class QuestionListViewTests(TestCase):
     def setUp(self):
@@ -24,7 +24,7 @@ class QuestionListViewTests(TestCase):
         """Check that the list view returns 200 and uses correct template"""
         response = self.client.get(reverse('question_list'))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'qa/question_list.html')
+        self.assertTemplateUsed(response, 'forum/question_list.html')
 
     def test_question_list_context(self):
         """Check that the context contains questions and total_votes is annotated"""
