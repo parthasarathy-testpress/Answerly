@@ -25,5 +25,4 @@ class QuestionCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.author = self.request.user
-        response = super().form_valid(form)
-        return response
+        return super().form_valid(form)

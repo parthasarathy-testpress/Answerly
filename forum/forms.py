@@ -4,6 +4,7 @@ from taggit.forms import TagField
 
 class QuestionForm(forms.ModelForm):
     tags = TagField(
+        label="Tags",
         required=False,
         help_text="Enter comma-separated tags (e.g. django, python).",
         widget=forms.TextInput(attrs={"placeholder": "e.g. django, python"})
