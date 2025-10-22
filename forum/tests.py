@@ -42,3 +42,35 @@ class QuestionListViewTests(TestCase):
 
         response_page2 = self.client.get(reverse('question_list') + '?page=2')
         self.assertEqual(len(response_page2.context['questions']), 5)
+
+class QuestionCreateViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username='testuser', password='pass123')
+        self.url = reverse('question_post')
+
+    def test_redirect_if_not_logged_in(self):
+        response = self.client.get(self.url)
+        expected_url = reverse('login') + '?next=' + self.url
+        self.assertRedirects(response, expected_url)
+
+    def test_form_display(self):
+        self.client.login(username='testuser', password='pass123')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '<form')
+
+    def test_create_question_with_tags(self):
+        self.client.login(username='testuser', password='pass123')
+        data = {
+            'title': 'New Question',
+            'description': 'Question description',
+            'tags': 'django, python'
+        }
+        response = self.client.post(self.url, data)
+        self.assertRedirects(response, reverse('question_list'))
+        question = Question.objects.get(title='New Question')
+        self.assertEqual(question.author, self.user)
+        tag_names = [tag.name for tag in question.tags.all()]
+        self.assertIn('django', tag_names)
+        self.assertIn('python', tag_names)

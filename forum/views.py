@@ -1,6 +1,9 @@
-from django.views.generic import ListView
+from django.views.generic import ListView,CreateView
 from django.db.models import Sum
 from .models import Question, Vote
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.urls import reverse_lazy
+from .forms import QuestionForm
 
 class QuestionListView(ListView):
     model = Question
@@ -12,3 +15,14 @@ class QuestionListView(ListView):
         return Question.objects.annotate(
             total_votes=Sum('votes__vote_type', default=0)
         ).order_by('-created_at')
+
+class QuestionCreateView(LoginRequiredMixin, CreateView):
+    model = Question
+    form_class = QuestionForm
+    template_name = 'forum/question_form.html'
+    success_url = reverse_lazy('question_list')
+    login_url = reverse_lazy('login')
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        return super().form_valid(form)
