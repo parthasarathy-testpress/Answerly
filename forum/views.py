@@ -33,9 +33,7 @@ class QuestionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     form_class = QuestionForm
     template_name = 'forum/question_edit.html'
     pk_url_kwarg = 'question_id'
-
-    def get_success_url(self):
-        return reverse_lazy('question_list')
+    success_url = reverse_lazy('question_list')
 
     def test_func(self):
         question = self.get_object()
