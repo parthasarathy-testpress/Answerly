@@ -17,24 +17,40 @@
           <form method="post" novalidate>
             {% csrf_token %}
 
-            {% for field in form %}
-              <div class="mb-3">
-                <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
-                  {{ field.label }}
-                </label>
+            <!-- Title Field -->
+            <div class="mb-3">
+              <label for="{{ form.title.id_for_label }}" class="form-label fw-semibold">
+                {{ form.title.label }}
+              </label>
+              {{ form.title|add_class:"form-control"|attr:"placeholder:Enter question title" }}
+              {% for error in form.title.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
+            </div>
 
-                {% if field.field.widget.input_type == "select" or field.field.widget.input_type == "selectmultiple" %}
-                  {{ field|add_class:"form-select" }}
-                {% else %}
-                  {{ field|add_class:"form-control" }}
-                {% endif %}
+            <!-- Description Field -->
+            <div class="mb-3">
+              <label for="{{ form.description.id_for_label }}" class="form-label fw-semibold">
+                {{ form.description.label }}
+              </label>
+              {{ form.description|add_class:"form-control"|attr:"placeholder:Describe your question" }}
+              {% for error in form.description.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
+            </div>
 
-                {% for error in field.errors %}
-                  <div class="invalid-feedback d-block">{{ error }}</div>
-                {% endfor %}
-              </div>
-            {% endfor %}
+            <!-- Tags Field -->
+            <div class="mb-3">
+              <label for="{{ form.tags.id_for_label }}" class="form-label fw-semibold">
+                {{ form.tags.label }}
+              </label>
+              {{ form.tags|add_class:"form-control"|attr:"placeholder:e.g. django, python" }}
+              {% for error in form.tags.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
+            </div>
 
+            <!-- Buttons -->
             <div class="text-center">
               <button type="submit" class="btn btn-primary px-4 py-2">Post Question</button>
               <a href="{% url 'question_list' %}" class="btn btn-outline-secondary ms-2 px-4 py-2">Cancel</a>

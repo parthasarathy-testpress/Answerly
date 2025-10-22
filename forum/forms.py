@@ -6,14 +6,9 @@ class QuestionForm(forms.ModelForm):
     tags = TagField(
         label="Tags",
         required=False,
-        help_text="Enter comma-separated tags (e.g. django, python).",
-        widget=forms.TextInput(attrs={"placeholder": "e.g. django, python"})
+        help_text="Enter comma-separated tags (e.g. django, python)."
     )
 
     class Meta:
         model = Question
         fields = ['title', 'description', 'tags']
-        widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter question title'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Describe your question'}),
-        }
