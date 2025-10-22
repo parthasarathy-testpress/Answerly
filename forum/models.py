@@ -3,7 +3,6 @@ from django.contrib.auth.models import User
 from taggit.managers import TaggableManager
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
-from django.urls import reverse
 
 
 class TimeStampedModel(models.Model):
