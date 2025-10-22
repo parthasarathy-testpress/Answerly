@@ -51,7 +51,8 @@ class QuestionCreateViewTests(TestCase):
 
     def test_redirect_if_not_logged_in(self):
         response = self.client.get(self.url)
-        self.assertRedirects(response, f'/accounts/login/?next={self.url}')
+        expected_url = reverse('login') + '?next=' + self.url
+        self.assertRedirects(response, expected_url)
 
     def test_form_display(self):
         self.client.login(username='testuser', password='pass123')
