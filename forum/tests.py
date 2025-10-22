@@ -2,7 +2,6 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
 from forum.models import Question
-from taggit.models import Tag
 
 class QuestionListViewTests(TestCase):
     def setUp(self):
@@ -89,7 +88,7 @@ class QuestionUpdateViewTests(TestCase):
         )
         self.question.tags.add('django', 'python')
 
-        self.url = reverse('question_edit', kwargs={'pk': self.question.pk})
+        self.url = reverse('question_edit', kwargs={'question_id': self.question.pk})
 
     def test_redirect_if_not_logged_in(self):
         response = self.client.get(self.url)
