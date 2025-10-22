@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Home - Questions{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Recent Questions</h2>
+<div class="row">
+  {% for question in questions %}
+  <div class="col-md-12 mb-3">
+    <a href="#" class="text-decoration-none text-reset">
+      {% include "forum/_question_card.html" %}
+    </a>
+  </div>
+  {% empty %}
+  <p>No questions found.</p>
+  {% endfor %}
+</div>
+
+{% include "_pagination.html" %}
+{% endblock %}

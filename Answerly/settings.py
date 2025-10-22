@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'taggit',
     'forum',
     'widget_tweaks',
+    'django.contrib.humanize',
 ]
 
 MIDDLEWARE = [
