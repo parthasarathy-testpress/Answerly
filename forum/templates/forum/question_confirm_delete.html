@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Delete Question{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+      <div class="card shadow-sm border-1 rounded-3">
+        <div class="card-body text-center">
+          <h3 class="mb-4 text-danger">Are you sure you want to delete this question?</h3>
+          <p class="mb-4 fw-semibold">{{ question.title }}</p>
+
+          <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger px-4 py-2">Yes, Delete</button>
+            <a href="{% url 'question_list' %}" class="btn btn-secondary px-4 py-2 ms-2">Cancel</a>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

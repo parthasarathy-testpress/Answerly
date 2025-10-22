@@ -1,9 +1,10 @@
-from django.views.generic import ListView,CreateView,UpdateView
+from django.views.generic import ListView,CreateView,UpdateView,DeleteView
 from django.db.models import Sum
 from .models import Question, Vote
 from django.contrib.auth.mixins import LoginRequiredMixin,UserPassesTestMixin
 from django.urls import reverse_lazy
 from .forms import QuestionForm
+from django.core.exceptions import PermissionDenied
 
 class QuestionListView(ListView):
     model = Question
@@ -31,6 +32,17 @@ class QuestionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Question
     form_class = QuestionForm
     template_name = 'forum/question_edit.html'
+    pk_url_kwarg = 'question_id'
+    success_url = reverse_lazy('question_list')
+
+    def test_func(self):
+        question = self.get_object()
+        return self.request.user == question.author
+
+class QuestionDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = Question
+    template_name = 'forum/question_confirm_delete.html'
+    context_object_name = 'question'
     pk_url_kwarg = 'question_id'
     success_url = reverse_lazy('question_list')
 

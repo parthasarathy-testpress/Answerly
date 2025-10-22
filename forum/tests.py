@@ -105,3 +105,34 @@ class QuestionUpdateViewTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Original Title')
+
+class QuestionDeleteViewTests(TestCase):
+    def setUp(self):
+        self.author = User.objects.create_user(username='author', password='pass1234')
+        self.other_user = User.objects.create_user(username='other', password='pass1234')
+
+        self.question = Question.objects.create(
+            title='Original Title',
+            description='Original description',
+            author=self.author
+        )
+        
+        self.url = reverse('question_delete', args=[self.question.pk])
+
+    def test_author_can_delete_question(self):
+        self.client.login(username='author', password='pass1234')
+        response = self.client.post(self.url)
+        self.assertRedirects(response, reverse('question_list'))
+        self.assertFalse(Question.objects.filter(id=self.question.pk).exists())
+
+    def test_non_author_cannot_delete_question(self):
+        self.client.login(username='other', password='pass1234')
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Question.objects.filter(id=self.question.pk).exists())
+
+    def test_anonymous_user_redirected_to_login(self):
+        response = self.client.post(self.url)
+        login_url = reverse('login')
+        self.assertRedirects(response, f'{login_url}?next={self.url}')
+        self.assertTrue(Question.objects.filter(id=self.question.pk).exists())
