@@ -1,6 +1,6 @@
 from django.views.generic import ListView,CreateView,UpdateView
 from django.db.models import Sum
-from .models import Question
+from .models import Question, Vote
 from django.contrib.auth.mixins import LoginRequiredMixin,UserPassesTestMixin
 from django.urls import reverse_lazy
 from .forms import QuestionForm
