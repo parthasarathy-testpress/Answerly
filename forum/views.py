@@ -1,10 +1,9 @@
 from django.views.generic import ListView,CreateView,UpdateView
 from django.db.models import Sum
-from .models import Question, Vote
+from .models import Question
 from django.contrib.auth.mixins import LoginRequiredMixin,UserPassesTestMixin
 from django.urls import reverse_lazy
 from .forms import QuestionForm
-from taggit.models import Tag
 
 class QuestionListView(ListView):
     model = Question
