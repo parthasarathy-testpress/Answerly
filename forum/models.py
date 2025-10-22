@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from taggit.managers import TaggableManager
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.urls import reverse
 
 
 class TimeStampedModel(models.Model):
@@ -40,6 +41,9 @@ class Question(TimeStampedModel):
 
     def __str__(self):
         return self.title
+    
+    def get_absolute_url(self):
+        return reverse('question_edit', kwargs={'pk': self.pk})
 
 
 class Answer(TimeStampedModel):

@@ -2,6 +2,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
 from forum.models import Question
+from taggit.models import Tag
 
 class QuestionListViewTests(TestCase):
     def setUp(self):
@@ -74,3 +75,54 @@ class QuestionCreateViewTests(TestCase):
         tag_names = [tag.name for tag in question.tags.all()]
         self.assertIn('django', tag_names)
         self.assertIn('python', tag_names)
+
+
+class QuestionUpdateViewTests(TestCase):
+    def setUp(self):
+        self.author = User.objects.create_user(username='author', password='pass1234')
+        self.other_user = User.objects.create_user(username='other', password='pass1234')
+
+        self.question = Question.objects.create(
+            title='Original Title',
+            description='Original description',
+            author=self.author
+        )
+        self.question.tags.add('django', 'python')
+
+        self.url = reverse('question_edit', kwargs={'pk': self.question.pk})
+
+    def test_redirect_if_not_logged_in(self):
+        response = self.client.get(self.url)
+        expected_url = reverse('login') + '?next=' + self.url
+        self.assertRedirects(response, expected_url)
+
+    def test_access_denied_if_not_author(self):
+        self.client.login(username='other', password='pass1234')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 403)
+
+    def test_get_update_view_as_author(self):
+        self.client.login(username='author', password='pass1234')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Original Title')
+
+    def test_post_update_view_changes_question_and_tags(self):
+        self.client.login(username='author', password='pass1234')
+        response = self.client.post(self.url, {
+            'title': 'Updated Title',
+            'description': 'Updated description',
+            'tags': 'django, javascript'
+        })
+        self.assertRedirects(response, reverse('question_list'))
+
+        self.question.refresh_from_db()
+        self.assertEqual(self.question.title, 'Updated Title')
+        self.assertEqual(self.question.description, 'Updated description')
+
+        tag_names = list(self.question.tags.names())
+        self.assertIn('django', tag_names)
+        self.assertIn('javascript', tag_names)
+        self.assertNotIn('python', tag_names)
+
+        self.assertFalse(Tag.objects.filter(name='python').exists())
