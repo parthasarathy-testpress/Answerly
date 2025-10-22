@@ -21,7 +21,7 @@
       <p class="mb-1 text-muted small">{{ question.created_at|naturaltime }}</p>
       <p class="mb-0 text-muted small">Votes: {{ question.total_votes }}</p>
       {% if request.user.is_authenticated and request.user == question.author %}
-        <a href="{{ question.get_absolute_url }}" class="ms-2 text-decoration-none" title="Edit Question">
+        <a href="{% url 'question_edit' question.pk %}" class="ms-2 text-decoration-none" title="Edit Question">
           <i class="bi bi-pencil-square"></i>
         </a>
       {% endif %}

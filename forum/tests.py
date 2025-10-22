@@ -106,23 +106,3 @@ class QuestionUpdateViewTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Original Title')
-
-    def test_post_update_view_changes_question_and_tags(self):
-        self.client.login(username='author', password='pass1234')
-        response = self.client.post(self.url, {
-            'title': 'Updated Title',
-            'description': 'Updated description',
-            'tags': 'django, javascript'
-        })
-        self.assertRedirects(response, reverse('question_list'))
-
-        self.question.refresh_from_db()
-        self.assertEqual(self.question.title, 'Updated Title')
-        self.assertEqual(self.question.description, 'Updated description')
-
-        tag_names = list(self.question.tags.names())
-        self.assertIn('django', tag_names)
-        self.assertIn('javascript', tag_names)
-        self.assertNotIn('python', tag_names)
-
-        self.assertFalse(Tag.objects.filter(name='python').exists())

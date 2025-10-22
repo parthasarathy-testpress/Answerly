@@ -39,11 +39,3 @@ class QuestionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     def test_func(self):
         question = self.get_object()
         return self.request.user == question.author
-    
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        all_tags = Tag.objects.all()
-        for tag in all_tags:
-            if not tag.taggit_taggeditem_items.exists():
-                tag.delete()
-        return response
