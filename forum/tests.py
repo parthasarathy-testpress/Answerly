@@ -136,3 +136,10 @@ class QuestionDeleteViewTests(TestCase):
         login_url = reverse('login')
         self.assertRedirects(response, f'{login_url}?next={self.url}')
         self.assertTrue(Question.objects.filter(id=self.question.pk).exists())
+    
+    def test_get_delete_confirmation_page(self):
+        self.client.login(username='author', password='pass1234')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'forum/question_confirm_delete.html')
+        self.assertContains(response, 'Are you sure you want to delete this question?')
