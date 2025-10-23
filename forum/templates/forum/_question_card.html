@@ -25,6 +25,9 @@
           <a href="{% url 'question_edit' question.pk %}" class="text-primary fs-5" title="Edit Question">
             <i class="bi bi-pencil-square"></i>
           </a>
+          <a href="{% url 'question_delete' question.pk %}" class="text-danger fs-5" title="Delete Question">
+            <i class="bi bi-trash"></i>
+          </a>
         </div>
       {% endif %}
     </div>
