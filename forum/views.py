@@ -1,9 +1,10 @@
+from django.shortcuts import get_object_or_404
 from django.views.generic import ListView,CreateView,UpdateView,DeleteView,DetailView
 from django.db.models import Sum,Count,Q
-from .models import Question, Vote
+from .models import Question, Vote,Answer
 from django.contrib.auth.mixins import LoginRequiredMixin,UserPassesTestMixin
 from django.urls import reverse_lazy
-from .forms import QuestionForm
+from .forms import QuestionForm,AnswerForm
 from django.core.paginator import Paginator
 
 class QuestionListView(ListView):
@@ -89,3 +90,25 @@ class QuestionDetailView(DetailView):
             )
             .order_by('-created_at')
         )
+    
+class AnswerCreateView(LoginRequiredMixin, CreateView):
+    model = Answer
+    form_class = AnswerForm
+    template_name = "forum/answer_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.question = get_object_or_404(Question, pk=self.kwargs.get("question_id"))
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        form.instance.question = self.question
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse_lazy('question_detail', kwargs={'question_id': self.object.question_id})
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['question'] = self.question
+        return context
