@@ -1,0 +1,23 @@
+{% load humanize %}
+<div class="card shadow-sm border-1 rounded-3 p-3 mb-3"
+   style="transition: transform 0.2s, box-shadow 0.2s;"
+     onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 15px rgba(0,0,0,0.15)';"
+     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='';">
+  <div class="card-body">
+    <div class="d-flex justify-content-between mb-2">
+      <strong>{{ answer.author.username }}</strong>
+      <span class="text-muted small">{{ answer.created_at|naturaltime }}</span>
+    </div>
+
+    <p class="mb-3">{{ answer.content }}</p>
+
+    <div class="d-flex gap-2 align-items-center">
+      <button class="btn btn-outline-success btn-sm" data-type="1" data-id="{{ answer.id }}">
+        <i class="bi bi-hand-thumbs-up"></i> ({{ answer.upvotes }})
+      </button>
+      <button class="btn btn-outline-danger btn-sm" data-type="-1" data-id="{{ answer.id }}">
+        <i class="bi bi-hand-thumbs-down"></i> ({{ answer.downvotes }})
+      </button>
+    </div>
+  </div>
+</div>

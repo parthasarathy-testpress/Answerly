@@ -8,7 +8,7 @@
 <div class="container-fluid py-5">
   <div class="row justify-content-center">
     <div class="col-12 col-md-11 col-lg-11">
-      <div class="card shadow border-0 rounded-3 p-4">
+      <div class="card shadow border-0 rounded-3 p-4 mb-4">
         <div class="card-body">
           <h2 class="fw-bold mb-3" style="color: #c75a00ff;">{{ question.title }}</h2>
 
@@ -46,8 +46,18 @@
           </div>
         </div>
       </div>
+
+      <!-- ✅ Answers Section -->
+      <h4 class="fw-semibold mb-3">Answers</h4>
+
+      {% for answer in answers %}
+        {% include "forum/_answer_card.html" with answer=answer %}
+      {% empty %}
+        <p class="text-muted">No answers yet.</p>
+      {% endfor %}
+
+      {% include "_pagination.html" %}
     </div>
   </div>
 </div>
-
 {% endblock %}
