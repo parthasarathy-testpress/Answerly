@@ -4,7 +4,6 @@ from .models import Question, Vote
 from django.contrib.auth.mixins import LoginRequiredMixin,UserPassesTestMixin
 from django.urls import reverse_lazy
 from .forms import QuestionForm
-from django.core.exceptions import PermissionDenied
 
 class QuestionListView(ListView):
     model = Question
@@ -49,3 +48,4 @@ class QuestionDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     def test_func(self):
         question = self.get_object()
         return self.request.user == question.author
+    
