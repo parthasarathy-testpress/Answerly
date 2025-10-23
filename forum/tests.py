@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from forum.models import Question
+from forum.models import Question,Vote
 
 class QuestionListViewTests(TestCase):
     def setUp(self):
@@ -143,3 +143,29 @@ class QuestionDeleteViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'forum/question_confirm_delete.html')
         self.assertContains(response, 'Are you sure you want to delete this question?')
+
+class QuestionDetailViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user1 = User.objects.create_user(username="user1", password="pass123")
+        self.user2 = User.objects.create_user(username="user2", password="pass123")
+        self.question = Question.objects.create(
+            title="Test Question",
+            description="Test Description",
+            author=self.user1
+        )
+        self.detail_url = reverse("question_detail", kwargs={"question_id": self.question.pk})
+        
+    def test_detail_view_renders(self):
+        response = self.client.get(self.detail_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.question.title)
+        self.assertContains(response, self.question.description)
+
+    def test_votes_count_in_context(self):
+        Vote.objects.create(user=self.user1, content_object=self.question, vote_type=1)
+        Vote.objects.create(user=self.user2, content_object=self.question, vote_type=-1)
+        
+        response = self.client.get(self.detail_url)
+        self.assertEqual(response.context["question_upvotes"], 1)
+        self.assertEqual(response.context["question_downvotes"], 1)
