@@ -26,25 +26,22 @@ class QuestionCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.author = self.request.user
         return super().form_valid(form)
-
-class QuestionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    
+class AuthorRequiredMixin(UserPassesTestMixin):
+    def test_func(self):
+        obj = self.get_object()
+        return self.request.user == obj.author
+    
+class QuestionUpdateView(LoginRequiredMixin, AuthorRequiredMixin, UpdateView):
     model = Question
     form_class = QuestionForm
     template_name = 'forum/question_edit.html'
     pk_url_kwarg = 'question_id'
     success_url = reverse_lazy('question_list')
 
-    def test_func(self):
-        question = self.get_object()
-        return self.request.user == question.author
-
-class QuestionDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+class QuestionDeleteView(LoginRequiredMixin, AuthorRequiredMixin, DeleteView):
     model = Question
     template_name = 'forum/question_confirm_delete.html'
     context_object_name = 'question'
     pk_url_kwarg = 'question_id'
     success_url = reverse_lazy('question_list')
-
-    def test_func(self):
-        question = self.get_object()
-        return self.request.user == question.author
