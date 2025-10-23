@@ -48,4 +48,3 @@ class QuestionDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     def test_func(self):
         question = self.get_object()
         return self.request.user == question.author
-    
