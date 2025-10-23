@@ -1,7 +1,7 @@
-from django.views.generic import ListView,CreateView
+from django.views.generic import ListView,CreateView,UpdateView
 from django.db.models import Sum
 from .models import Question, Vote
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin,UserPassesTestMixin
 from django.urls import reverse_lazy
 from .forms import QuestionForm
 
@@ -26,3 +26,14 @@ class QuestionCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.author = self.request.user
         return super().form_valid(form)
+
+class QuestionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = Question
+    form_class = QuestionForm
+    template_name = 'forum/question_edit.html'
+    pk_url_kwarg = 'question_id'
+    success_url = reverse_lazy('question_list')
+
+    def test_func(self):
+        question = self.get_object()
+        return self.request.user == question.author

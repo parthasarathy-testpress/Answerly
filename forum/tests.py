@@ -74,3 +74,34 @@ class QuestionCreateViewTests(TestCase):
         tag_names = [tag.name for tag in question.tags.all()]
         self.assertIn('django', tag_names)
         self.assertIn('python', tag_names)
+
+
+class QuestionUpdateViewTests(TestCase):
+    def setUp(self):
+        self.author = User.objects.create_user(username='author', password='pass1234')
+        self.other_user = User.objects.create_user(username='other', password='pass1234')
+
+        self.question = Question.objects.create(
+            title='Original Title',
+            description='Original description',
+            author=self.author
+        )
+        self.question.tags.add('django', 'python')
+
+        self.url = reverse('question_edit', kwargs={'question_id': self.question.pk})
+
+    def test_redirect_if_not_logged_in(self):
+        response = self.client.get(self.url)
+        expected_url = reverse('login') + '?next=' + self.url
+        self.assertRedirects(response, expected_url)
+
+    def test_access_denied_if_not_author(self):
+        self.client.login(username='other', password='pass1234')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 403)
+
+    def test_get_update_view_as_author(self):
+        self.client.login(username='author', password='pass1234')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Original Title')
