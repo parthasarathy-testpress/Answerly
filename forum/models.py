@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from taggit.managers import TaggableManager
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.db.models import Sum, Case, When, IntegerField
 
 
 class TimeStampedModel(models.Model):
@@ -16,8 +17,30 @@ class TimeStampedModel(models.Model):
     class Meta:
         abstract = True
 
+class VoteCountMixin:
+    def get_vote_counts(self):
+        votes = self.votes.aggregate(
+            upvotes=Sum(
+                Case(
+                    When(vote_type=1, then=1),
+                    default=0,
+                    output_field=IntegerField()
+                )
+            ),
+            downvotes=Sum(
+                Case(
+                    When(vote_type=-1, then=1),
+                    default=0,
+                    output_field=IntegerField()
+                )
+            )
+        )
+        return {
+            "upvotes": votes.get('upvotes') or 0,
+            "downvotes": votes.get('downvotes') or 0,
+        }
 
-class Question(TimeStampedModel):
+class Question(VoteCountMixin,TimeStampedModel):
     """
     Represents a question posted by a user in the Q&A platform.
     """

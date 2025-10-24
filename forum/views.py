@@ -1,4 +1,4 @@
-from django.views.generic import ListView,CreateView,UpdateView,DeleteView
+from django.views.generic import ListView,CreateView,UpdateView,DeleteView,DetailView
 from django.db.models import Sum
 from .models import Question, Vote
 from django.contrib.auth.mixins import LoginRequiredMixin,UserPassesTestMixin
@@ -45,3 +45,17 @@ class QuestionDeleteView(LoginRequiredMixin, AuthorRequiredMixin, DeleteView):
     context_object_name = 'question'
     pk_url_kwarg = 'question_id'
     success_url = reverse_lazy('question_list')
+
+class QuestionDetailView(DetailView):
+    model = Question
+    template_name = "forum/question_detail.html"
+    context_object_name = "question"
+    pk_url_kwarg = 'question_id'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        question = self.get_object()
+        vote_counts = question.get_vote_counts()
+        context["question_upvotes"] = vote_counts["upvotes"]
+        context["question_downvotes"] = vote_counts["downvotes"]
+        return context
