@@ -55,7 +55,9 @@
       <h4 class="fw-semibold mb-3">Answers</h4>
 
       {% for answer in answers %}
-        {% include "forum/_answer_card.html" with answer=answer %}
+        <a href="{% url 'answer_detail' answer_id=answer.pk %}" class="text-decoration-none text-reset">
+          {% include "forum/_answer_card.html" with answer=answer %}
+        </a>
       {% empty %}
         <p class="text-muted">No answers yet.</p>
       {% endfor %}
