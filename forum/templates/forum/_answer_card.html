@@ -25,6 +25,9 @@
         <a href="{% url 'answer_update' answer_id=answer.pk %}" class="text-primary fs-5" title="Edit Answer">
             <i class="bi bi-pencil-square"></i>
         </a>
+        <a href="{% url 'answer_delete' answer_id=answer.pk %}" class="text-danger fs-5" title="Delete Answer">
+            <i class="bi bi-trash"></i>
+        </a>
       </div>
     {% endif %}
     
