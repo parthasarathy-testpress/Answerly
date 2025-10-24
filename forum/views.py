@@ -139,3 +139,22 @@ class AnswerDeleteView(LoginRequiredMixin, AuthorRequiredMixin, DeleteView):
         context = super().get_context_data(**kwargs)
         context['answer'] = self.object
         return context
+
+class AnswerDetailView(DetailView):
+    model = Answer
+    template_name = "forum/answer_detail.html"
+    pk_url_kwarg = 'answer_id'
+    context_object_name = 'answer'
+
+    def get_context_data(self, **kwargs):
+            context = super().get_context_data(**kwargs)
+            answer = self.object
+            question = answer.question
+            vote_counts = answer.get_vote_counts()
+    
+            context.update({
+                "question": question,
+                "answer_upvotes": vote_counts["upvotes"],
+                "answer_downvotes": vote_counts["downvotes"],
+            })
+            return context

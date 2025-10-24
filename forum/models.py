@@ -65,7 +65,7 @@ class Question(VoteCountMixin,TimeStampedModel):
         return self.title
 
 
-class Answer(TimeStampedModel):
+class Answer(TimeStampedModel,VoteCountMixin):
     """
     Represents an answer posted to a question.
     """

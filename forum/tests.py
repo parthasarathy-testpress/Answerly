@@ -2,6 +2,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
 from forum.models import Question,Vote,Answer
+from django.contrib.contenttypes.models import ContentType
 
 class QuestionListViewTests(TestCase):
     def setUp(self):
@@ -358,3 +359,53 @@ class AnswerDeleteViewTests(TestCase):
         self.client.login(username="user1", password="pass123")
         response = self.client.get(self.delete_url)
         self.assertEqual(response.context["answer"], self.answer)
+
+class AnswerDetailViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user1 = User.objects.create_user(username="user1", password="pass123")
+        self.user2 = User.objects.create_user(username="user2", password="pass123")
+        
+        self.question = Question.objects.create(
+            title="Test Question",
+            description="Test Description",
+            author=self.user1
+        )
+        
+        self.answer = Answer.objects.create(
+            question=self.question,
+            author=self.user2,
+            content="This is a test answer"
+        )
+        
+        self.detail_url = reverse("answer_detail", kwargs={"answer_id": self.answer.pk})
+
+    def test_detail_view_is_accessible_without_login(self):
+        response = self.client.get(self.detail_url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_detail_view_renders_correct_template(self):
+        response = self.client.get(self.detail_url)
+        self.assertTemplateUsed(response, "forum/answer_detail.html")
+        self.assertContains(response, self.answer.content)
+        self.assertContains(response, self.question.title)
+
+    def test_context_contains_answer_and_question(self):
+        response = self.client.get(self.detail_url)
+        self.assertEqual(response.context["answer"], self.answer)
+        self.assertEqual(response.context["question"], self.question)
+
+    def test_vote_counts_in_context(self):
+        answer_ct = ContentType.objects.get_for_model(self.answer)
+    
+        Vote.objects.create(content_type=answer_ct, object_id=self.answer.pk, user=self.user1, vote_type=1)
+        Vote.objects.create(content_type=answer_ct, object_id=self.answer.pk, user=self.user2, vote_type=-1)
+    
+        response = self.client.get(self.detail_url)
+        self.assertEqual(response.context["answer_upvotes"], 1)
+        self.assertEqual(response.context["answer_downvotes"], 1)
+
+    def test_invalid_answer_returns_404(self):
+        invalid_url = reverse("answer_detail", kwargs={"answer_id": 9999})
+        response = self.client.get(invalid_url)
+        self.assertEqual(response.status_code, 404)
