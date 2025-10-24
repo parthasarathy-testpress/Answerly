@@ -126,3 +126,16 @@ class AnswerUpdateView(LoginRequiredMixin, AuthorRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context['answer'] = self.object
         return context
+
+class AnswerDeleteView(LoginRequiredMixin, AuthorRequiredMixin, DeleteView):
+    model = Answer
+    template_name = "forum/answer_confirm_delete.html"
+    pk_url_kwarg = 'answer_id'
+    
+    def get_success_url(self):
+        return reverse_lazy('question_detail', kwargs={'question_id': self.object.question.pk})
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['answer'] = self.object
+        return context
