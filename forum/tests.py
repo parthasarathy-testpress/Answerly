@@ -215,3 +215,51 @@ class AnswerListPaginationTests(TestCase):
         answers = response.context["answers"]
         self.assertEqual(len(answers), 1)
         self.assertEqual(response.context["page_obj"].number, 3)
+
+class AnswerCreateViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="testuser", password="pass123")
+        self.other_user = User.objects.create_user(username="otheruser", password="pass123")
+        self.question = Question.objects.create(
+            title="Test Question",
+            description="Test Description",
+            author=self.user
+        )
+        self.url = reverse("answer_post", kwargs={"question_id": self.question.pk})
+
+    def test_redirect_if_not_logged_in(self):
+        response = self.client.get(self.url)
+        login_url = reverse("login") + f"?next={self.url}"
+        self.assertRedirects(response, login_url)
+
+    def test_view_renders_for_logged_in_user(self):
+        self.client.login(username="testuser", password="pass123")
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "forum/answer_form.html")
+
+    def test_post_valid_answer_creates_object(self):
+        self.client.login(username="testuser", password="pass123")
+        data = {"content": "This is a test answer"}
+        response = self.client.post(self.url, data)
+        self.assertEqual(Answer.objects.count(), 1)
+        answer = Answer.objects.first()
+        self.assertEqual(answer.content, "This is a test answer")
+        self.assertEqual(answer.author, self.user)
+        self.assertEqual(answer.question, self.question)
+        expected_url = reverse("question_detail", kwargs={"question_id": self.question.pk})
+        self.assertRedirects(response, expected_url)
+
+    def test_post_invalid_answer_shows_errors(self):
+        self.client.login(username="testuser", password="pass123")
+        data = {"content": ""}
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "This field is required.")
+        self.assertEqual(Answer.objects.count(), 0)
+
+    def test_context_contains_question(self):
+        self.client.login(username="testuser", password="pass123")
+        response = self.client.get(self.url)
+        self.assertEqual(response.context["question"], self.question)
