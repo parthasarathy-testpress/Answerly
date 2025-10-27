@@ -310,3 +310,51 @@ class AnswerUpdateViewTests(TestCase):
         self.client.login(username="user1", password="pass123")
         response = self.client.get(self.update_url)
         self.assertEqual(response.context["answer"], self.answer)
+
+class AnswerDeleteViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user1 = User.objects.create_user(username="user1", password="pass123")
+        self.user2 = User.objects.create_user(username="user2", password="pass123")
+        self.question = Question.objects.create(
+            title="Test Question",
+            description="Test Description",
+            author=self.user1
+        )
+        self.answer = Answer.objects.create(
+            question=self.question,
+            author=self.user1,
+            content="Answer to be deleted"
+        )
+        self.delete_url = reverse("answer_delete", kwargs={"answer_id": self.answer.pk})
+
+    def test_redirect_if_not_logged_in(self):
+        response = self.client.get(self.delete_url)
+        self.assertNotEqual(response.status_code, 200)
+        self.assertIn("/login/", response.url)
+
+    def test_access_by_non_author_forbidden(self):
+        self.client.login(username="user2", password="pass123")
+        response = self.client.get(self.delete_url)
+        self.assertEqual(response.status_code, 403)
+
+    def test_access_by_author_renders_confirmation_page(self):
+        self.client.login(username="user1", password="pass123")
+        response = self.client.get(self.delete_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Are you sure you want to delete")
+        self.assertContains(response, self.answer.content)
+        self.assertTemplateUsed(response, "forum/answer_confirm_delete.html")
+
+    def test_successful_answer_deletion(self):
+        self.client.login(username="user1", password="pass123")
+        response = self.client.post(self.delete_url)
+        with self.assertRaises(Answer.DoesNotExist):
+            Answer.objects.get(pk=self.answer.pk)
+        expected_url = reverse("question_detail", kwargs={"question_id": self.question.pk})
+        self.assertRedirects(response, expected_url)
+
+    def test_context_contains_answer(self):
+        self.client.login(username="user1", password="pass123")
+        response = self.client.get(self.delete_url)
+        self.assertEqual(response.context["answer"], self.answer)
