@@ -1,11 +1,12 @@
 from django.shortcuts import get_object_or_404
 from django.views.generic import ListView,CreateView,UpdateView,DeleteView,DetailView
 from django.db.models import Sum,Count,Q
-from .models import Question, Vote,Answer
+from .models import Question, Vote,Answer,Comment
 from django.contrib.auth.mixins import LoginRequiredMixin,UserPassesTestMixin
 from django.urls import reverse_lazy
 from .forms import QuestionForm,AnswerForm
 from django.core.paginator import Paginator
+from django.contrib.contenttypes.models import ContentType
 
 class QuestionListView(ListView):
     model = Question
@@ -145,16 +146,44 @@ class AnswerDetailView(DetailView):
     template_name = "forum/answer_detail.html"
     pk_url_kwarg = 'answer_id'
     context_object_name = 'answer'
+    paginate_comments_by = 3
 
     def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
             answer = self.object
-            question = answer.question
-            vote_counts = answer.get_vote_counts()
-    
-            context.update({
-                "question": question,
-                "answer_upvotes": vote_counts["upvotes"],
-                "answer_downvotes": vote_counts["downvotes"],
-            })
+            context.update(self.get_answer_vote_context(answer))
+            context.update(self.get_paginated_comments_context(answer))
+            context["question"] = answer.question
             return context
+
+    def get_answer_vote_context(self, answer):
+        vote_counts = answer.get_vote_counts()
+        return {
+            "answer_upvotes": vote_counts["upvotes"],
+            "answer_downvotes": vote_counts["downvotes"],
+        }
+
+    def get_paginated_comments_context(self, answer):
+        comments_qs = self.get_annotated_comments(answer)
+        paginator = Paginator(comments_qs, self.paginate_comments_by)
+        page_number = self.request.GET.get("page")
+        page_obj = paginator.get_page(page_number)
+
+        return {
+            "comments": page_obj,
+            "paginator": paginator,
+            "page_obj": page_obj,
+            "is_paginated": page_obj.has_other_pages(),
+        }
+
+    def get_annotated_comments(self, answer):
+        return (
+            Comment.objects.filter(
+                content_type=ContentType.objects.get_for_model(Answer), object_id=answer.pk
+            )
+            .annotate(
+                upvotes=Count("votes", filter=Q(votes__vote_type=1)),
+                downvotes=Count("votes", filter=Q(votes__vote_type=-1)),
+            )
+            .order_by("-created_at")
+        )

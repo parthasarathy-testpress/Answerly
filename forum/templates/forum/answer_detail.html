@@ -58,6 +58,19 @@
         ← Back to Question
       </a>      
 
+      <!-- ✅ Comments Section -->
+      <hr class="my-4">
+      <h4 class="mt-4 mb-3">Comments ({{ comments.paginator.count }})</h4>
+
+      {% for comment in comments %}
+        {% include "forum/_comment_card.html" with comment=comment %}
+      {% empty %}
+        <p class="text-muted fst-italic">No comments yet.</p>
+      {% endfor %}
+
+      {% include "_pagination.html" %}
+      <!-- ✅ End Comments Section -->
+
     </div>
   </div>
 </div>
