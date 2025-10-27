@@ -16,7 +16,20 @@
       <button class="btn btn-outline-danger btn-sm" data-type="-1" data-id="{{ comment.id }}">
         <i class="bi bi-hand-thumbs-down"></i> ({{ comment.downvotes }})
       </button>
+
+      {% if comment.replies_cached %}
+        <button class="btn btn-link btn-sm text-decoration-none toggle-replies" data-reply-count="{{ comment.replies_cached|length }}">
+          View Replies ({{ comment.replies_cached|length }})
+        </button>
+      {% endif %}
     </div>
-    
+
+    {% if comment.replies_cached %}
+      <div class="replies mt-3 ps-4 border-start d-none">
+        {% for reply in comment.replies_cached %}
+          {% include "forum/_comment_card.html" with comment=reply %}
+        {% endfor %}
+      </div>
+    {% endif %}
   </div>
 </div>

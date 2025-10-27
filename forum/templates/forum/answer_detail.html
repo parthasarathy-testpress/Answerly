@@ -74,4 +74,79 @@
     </div>
   </div>
 </div>
+
+<!-- ✅ Popup Comment Form -->
+{% if user.is_authenticated %}
+<div
+  id="comment-popup"
+  class="position-fixed top-50 start-50 translate-middle bg-white border rounded-3 shadow-lg p-4"
+  style="z-index: 1050; display: none; width: 400px;"
+>
+  <h5 class="mb-3 text-center text-primary">Add Comment</h5>
+  <form id="comment-form" method="post" action="">
+    {% csrf_token %}
+    <textarea
+      name="content"
+      id="id_content"
+      class="form-control mb-3"
+      rows="3"
+      placeholder="Write your comment..."
+      required
+    ></textarea>
+    <div class="d-flex justify-content-end gap-2">
+      <button type="button" id="cancel-btn" class="btn btn-outline-secondary">Cancel</button>
+      <button type="submit" class="btn btn-primary">Post</button>
+    </div>
+  </form>
+</div>
+<div
+  id="popup-overlay"
+  class="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50"
+  style="display: none; z-index: 1040;"
+></div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const toggleBtn = document.getElementById("comment-toggle-btn");
+  const popup = document.getElementById("comment-popup");
+  const overlay = document.getElementById("popup-overlay");
+  const cancelBtn = document.getElementById("cancel-btn");
+
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", () => {
+      popup.style.display = "block";
+      overlay.style.display = "block";
+    });
+  }
+
+  function hidePopup() {
+    popup.style.display = "none";
+    overlay.style.display = "none";
+  }
+  
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", hidePopup);
+  }
+
+  if (overlay) {
+    overlay.addEventListener("click", hidePopup);
+  }
+  document.addEventListener("click", function(e) {
+  if (e.target.classList.contains("toggle-replies")) {
+    const repliesDiv = e.target.closest(".card-body").querySelector(".replies");
+    if (repliesDiv) {
+      repliesDiv.classList.toggle("d-none");
+      const replyCount = e.target.dataset.replyCount;
+      e.target.textContent = repliesDiv.classList.contains("d-none")
+        ? `View Replies (${replyCount})`
+        : "Hide Replies";
+    }
+  }
+});
+});
+</script>
+
 {% endblock %}

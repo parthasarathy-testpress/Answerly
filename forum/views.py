@@ -177,13 +177,51 @@ class AnswerDetailView(DetailView):
         }
 
     def get_annotated_comments(self, answer):
-        return (
+        comments = (
             Comment.objects.filter(
-                content_type=ContentType.objects.get_for_model(Answer), object_id=answer.pk
+                content_type=ContentType.objects.get_for_model(Answer),
+                object_id=answer.pk,
+                parent__isnull=True
             )
+            .select_related("author")
             .annotate(
                 upvotes=Count("votes", filter=Q(votes__vote_type=1)),
                 downvotes=Count("votes", filter=Q(votes__vote_type=-1)),
             )
             .order_by("-created_at")
         )
+    
+        def annotate_replies(comment):
+            replies = (
+                comment.replies.select_related("author")
+                .annotate(
+                    upvotes=Count("votes", filter=Q(votes__vote_type=1)),
+                    downvotes=Count("votes", filter=Q(votes__vote_type=-1)),
+                )
+                .order_by("-created_at")
+            )
+            for reply in replies:
+                reply.replies_cached = list(annotate_replies(reply))
+            return replies
+    
+        for c in comments:
+            c.replies_cached = list(annotate_replies(c))
+    
+        return comments
+
+
+    def post(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path())
+
+        self.object = self.get_object()
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.author = request.user
+            comment.content_object = self.object
+            comment.save()
+            return redirect("answer_detail", answer_id=self.object.pk)
+
+        context = self.get_context_data(comment_form=form)
+        return self.render_to_response(context)
