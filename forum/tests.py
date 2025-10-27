@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from forum.models import Question,Vote
+from forum.models import Question,Vote,Answer
 
 class QuestionListViewTests(TestCase):
     def setUp(self):
@@ -169,3 +169,49 @@ class QuestionDetailViewTests(TestCase):
         response = self.client.get(self.detail_url)
         self.assertEqual(response.context["question_upvotes"], 1)
         self.assertEqual(response.context["question_downvotes"], 1)
+        
+class AnswerListPaginationTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="user1", password="pass123")
+        self.question = Question.objects.create(
+            title="Question for Pagination Test",
+            description="Testing answers pagination",
+            author=self.user
+        )
+        
+        for i in range(7):
+            Answer.objects.create(
+                question=self.question,
+                author=self.user,
+                content=f"Answer {i+1}"
+            )
+
+        self.url = reverse("question_detail", kwargs={"question_id": self.question.pk})
+
+    def test_first_page_answers_count(self):
+        response = self.client.get(self.url)
+        answers = response.context["answers"]
+        self.assertEqual(len(answers), 3)
+        self.assertTrue(response.context["is_paginated"])
+        self.assertEqual(response.context["page_obj"].number, 1)
+
+    def test_second_page_answers_count(self):
+        response = self.client.get(f"{self.url}?page=2")
+        answers = response.context["answers"]
+        self.assertEqual(len(answers), 3)
+        self.assertTrue(response.context["is_paginated"])
+        self.assertEqual(response.context["page_obj"].number, 2)
+
+    def test_third_page_answers_count(self):
+        response = self.client.get(f"{self.url}?page=3")
+        answers = response.context["answers"]
+        self.assertEqual(len(answers), 1)
+        self.assertTrue(response.context["is_paginated"])
+        self.assertEqual(response.context["page_obj"].number, 3)
+
+    def test_invalid_page_number(self):
+        response = self.client.get(f"{self.url}?page=999")
+        answers = response.context["answers"]
+        self.assertEqual(len(answers), 1)
+        self.assertEqual(response.context["page_obj"].number, 3)
