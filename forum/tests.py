@@ -442,3 +442,32 @@ class AnswerDetailViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("comments", response.context)
         self.assertEqual(response.context["comments"].paginator.count, 2)
+
+    
+    def test_authenticated_user_can_post_valid_comment(self):
+        self.client.login(username="user1", password="pass123")
+        data = {"content": "Nice explanation!"}
+        response = self.client.post(self.detail_url, data, follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Comment.objects.filter(content="Nice explanation!").exists())
+
+        comment = Comment.objects.get(content="Nice explanation!")
+        self.assertEqual(comment.author, self.user1)
+        self.assertEqual(comment.content_object, self.answer)
+        self.assertContains(response, "Nice explanation!")
+
+    def test_anonymous_user_cannot_post_comment(self):
+        data = {"content": "Should not work!"}
+        response = self.client.post(self.detail_url, data)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/", response.url)
+        self.assertFalse(Comment.objects.filter(content="Should not work!").exists())
+
+    def test_invalid_comment_form_rerenders_template(self):
+        self.client.login(username="user1", password="pass123")
+        data = {"content": ""}
+        response = self.client.post(self.detail_url, data)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "forum/answer_detail.html")
+        self.assertEqual(Comment.objects.count(), 0)
