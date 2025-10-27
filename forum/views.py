@@ -112,3 +112,17 @@ class AnswerCreateView(LoginRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         context['question'] = self.question
         return context
+
+class AnswerUpdateView(LoginRequiredMixin, AuthorRequiredMixin, UpdateView):
+    model = Answer
+    form_class = AnswerForm
+    template_name = "forum/answer_update_form.html"
+    pk_url_kwarg = 'answer_id'
+    
+    def get_success_url(self):
+        return reverse_lazy('question_detail', kwargs={'question_id': self.object.question.pk})
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['answer'] = self.object
+        return context

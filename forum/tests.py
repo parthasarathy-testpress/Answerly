@@ -263,3 +263,50 @@ class AnswerCreateViewTests(TestCase):
         self.client.login(username="testuser", password="pass123")
         response = self.client.get(self.url)
         self.assertEqual(response.context["question"], self.question)
+
+class AnswerUpdateViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user1 = User.objects.create_user(username="user1", password="pass123")
+        self.user2 = User.objects.create_user(username="user2", password="pass123")
+        self.question = Question.objects.create(
+            title="Test Question",
+            description="Test Description",
+            author=self.user1
+        )
+        self.answer = Answer.objects.create(
+            question=self.question,
+            author=self.user1,
+            content="Original Answer"
+        )
+        self.update_url = reverse("answer_update", kwargs={"answer_id": self.answer.pk})
+
+    def test_redirect_if_not_logged_in(self):
+        response = self.client.get(self.update_url)
+        expected_url = f"{reverse('login')}?next={self.update_url}"
+        self.assertRedirects(response, expected_url)
+
+    def test_access_by_non_author_forbidden(self):
+        self.client.login(username="user2", password="pass123")
+        response = self.client.get(self.update_url)
+        self.assertEqual(response.status_code, 403)
+
+    def test_access_by_author_renders_form(self):
+        self.client.login(username="user1", password="pass123")
+        response = self.client.get(self.update_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Original Answer")
+        self.assertTemplateUsed(response, "forum/answer_update_form.html")
+
+    def test_successful_answer_update(self):
+        self.client.login(username="user1", password="pass123")
+        response = self.client.post(self.update_url, {"content": "Updated Answer"})
+        self.answer.refresh_from_db()
+        self.assertEqual(self.answer.content, "Updated Answer")
+        expected_url = reverse("question_detail", kwargs={"question_id": self.question.pk})
+        self.assertRedirects(response, expected_url)
+
+    def test_context_contains_answer(self):
+        self.client.login(username="user1", password="pass123")
+        response = self.client.get(self.update_url)
+        self.assertEqual(response.context["answer"], self.answer)
