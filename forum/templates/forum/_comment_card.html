@@ -5,6 +5,14 @@
   <div class="card-body">
     <div class="d-flex justify-content-between mb-2">
       <strong>{{ comment.author.username }}</strong>
+      {% if request.user.is_authenticated and request.user == comment.author %}
+        <div class="d-flex justify-content-end gap-3">
+            <a href="{% url 'comment_update' comment_id=comment.pk %}" class="text-primary fs-5" title="Edit comment">
+                <i class="bi bi-pencil-square"></i>
+            </a>
+        </div>
+      {% endif %}
+      
     </div>
 
     <p class="mb-3">{{ comment.content }}</p>
