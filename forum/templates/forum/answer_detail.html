@@ -158,6 +158,66 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 });
+document.addEventListener("click", function (e) {
+  // --- Show reply form ---
+  if (e.target.classList.contains("reply-btn")) {
+    const commentCard = e.target.closest(".card-body");
+    const formContainer = commentCard.querySelector(".reply-form-container");
+    if (formContainer) {
+      formContainer.classList.remove("d-none");
+      e.target.classList.add("d-none");
+    }
+  }
+
+  // --- Cancel reply ---
+  if (e.target.classList.contains("cancel-reply")) {
+    const formContainer = e.target.closest(".reply-form-container");
+    formContainer.classList.add("d-none");
+
+    const commentCard = formContainer.closest(".card-body");
+    const replyBtn = commentCard.querySelector(".reply-btn");
+    if (replyBtn) replyBtn.classList.remove("d-none");
+  }
+});
+
+document.addEventListener("submit", async function (e) {
+  if (e.target.classList.contains("reply-form")) {
+    e.preventDefault();
+
+    const form = e.target;
+    const parentId = form.dataset.parentId;
+    const content = form.querySelector("textarea").value.trim();
+    const csrfToken = form.querySelector("[name=csrfmiddlewaretoken]").value;
+
+    if (!content) return;
+
+    try {
+      const response = await fetch("", {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrfToken,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          content: content,
+          parent: parentId,
+        }),
+      });
+
+      if (response.redirected) {
+        window.location.href = response.url;
+      } else if (response.ok) {
+        window.location.reload();
+      } else {
+        console.error("Failed to post reply:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error submitting reply:", error);
+    }
+  }
+});
+
+
 </script>
 
 {% endblock %}
