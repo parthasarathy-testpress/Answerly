@@ -67,3 +67,73 @@ class SignupViewTests(TestCase):
         self.assertContains(response, "Enter a valid email address")
         self.assertContains(response, "The two password fields didn’t match.")
          
+class UserProfileEditTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="john_doe",
+            email="john@example.com",
+            password="strongpassword123"
+        )
+        self.client.login(username="john_doe", password="strongpassword123")
+        self.url = reverse("profile")
+
+    def test_profile_edit_view_renders_form(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Edit Your Profile")
+        self.assertContains(response, "name=\"username\"")
+        self.assertContains(response, "name=\"email\"")
+
+    def test_profile_edit_requires_login(self):
+        self.client.logout()
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login", response.url)
+
+    def test_valid_profile_update(self):
+        data = {
+            "username": "new_john",
+            "first_name": "John",
+            "last_name": "Smith",
+            "email": "newjohn@example.com",
+        }
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, 302)
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.username, "new_john")
+        self.assertEqual(self.user.first_name, "John")
+        self.assertEqual(self.user.last_name, "Smith")
+        self.assertEqual(self.user.email, "newjohn@example.com")
+
+    def test_invalid_email_rejected(self):
+        data = {
+            "username": "john_doe",
+            "email": "invalid_email",
+        }
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Enter a valid email address")
+
+    def test_duplicate_email_rejected(self):
+        User.objects.create_user(
+            username="jane",
+            email="jane@example.com",
+            password="pass123"
+        )
+        data = {
+            "username": "john_doe",
+            "email": "jane@example.com",
+        }
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "already exists")
+
+    def test_blank_username_rejected(self):
+        data = {
+            "username": "",
+            "email": "john@example.com",
+        }
+        response = self.client.post(self.url, data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "This field is required.")
