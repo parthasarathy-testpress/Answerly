@@ -61,7 +61,7 @@
                 Hi, {{ user.username }}
               </a>
               <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                <li><a class="dropdown-item" href="#" style="text-align:center;">Profile</a></li>
+                <li><a class="dropdown-item" href="{% url 'profile' %}" style="text-align:center;">Profile</a></li>
                 <li><hr class="dropdown-divider" /></li>
                 <li>
                   <form method="post" action="{% url 'logout' %}" class="m-0" style="text-align:center;">
