@@ -8,6 +8,10 @@ from .forms import QuestionForm,AnswerForm,CommentForm
 from django.core.paginator import Paginator
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.views import redirect_to_login
+from django.utils.decorators import method_decorator
+from django.views import View
+from django.http import JsonResponse, HttpResponseBadRequest
+from django.contrib.auth.decorators import login_required
 
 class QuestionListView(ListView):
     model = Question
@@ -62,6 +66,16 @@ class QuestionDetailView(DetailView):
         question = self.get_object()
         context.update(self.get_question_vote_context(question))
         context.update(self.get_paginated_answers_context(question))
+
+        if self.request.user.is_authenticated:
+            try:
+                q_ct = ContentType.objects.get_for_model(Question)
+                qvote = Vote.objects.get(user=self.request.user, content_type=q_ct, object_id=question.pk)
+                context['question_user_vote'] = qvote.vote_type
+            except Vote.DoesNotExist:
+                context['question_user_vote'] = 0
+        else:
+            context['question_user_vote'] = 0
         return context
 
     def get_question_vote_context(self, question):
@@ -73,6 +87,20 @@ class QuestionDetailView(DetailView):
         
     def get_paginated_answers_context(self, question):
         answers_qs = self.get_annotated_answers(question)
+        if self.request.user.is_authenticated:
+            answer_ids = [a.pk for a in answers_qs]
+            if answer_ids:
+                answer_ct = ContentType.objects.get_for_model(Answer)
+                votes = Vote.objects.filter(user=self.request.user, content_type=answer_ct, object_id__in=answer_ids)
+                votes_map = {v.object_id: v.vote_type for v in votes}
+            else:
+                votes_map = {}
+            for a in answers_qs:
+                a.user_vote = votes_map.get(a.pk, 0)
+        else:
+            for a in answers_qs:
+                a.user_vote = 0
+
         paginator = Paginator(answers_qs, self.paginate_answers_by)
         page_number = self.request.GET.get('page')
         page_obj = paginator.get_page(page_number)
@@ -156,6 +184,17 @@ class AnswerDetailView(DetailView):
             context.update(self.get_paginated_comments_context(answer))
             context["question"] = answer.question
             context["comment_form"] = kwargs.get("comment_form", CommentForm())
+
+            if self.request.user.is_authenticated:
+                try:
+                    a_ct = ContentType.objects.get_for_model(Answer)
+                    avote = Vote.objects.get(user=self.request.user, content_type=a_ct, object_id=answer.pk)
+                    context['answer_user_vote'] = avote.vote_type
+                except Vote.DoesNotExist:
+                    context['answer_user_vote'] = 0
+            else:
+                context['answer_user_vote'] = 0
+
             return context
 
     def get_answer_vote_context(self, answer):
@@ -208,6 +247,40 @@ class AnswerDetailView(DetailView):
     
         for c in comments:
             c.replies_cached = list(annotate_replies(c))
+
+        if hasattr(self, 'request') and self.request.user.is_authenticated:
+            # collect all comment ids
+            def collect_ids(comment):
+                ids = [comment.pk]
+                for r in getattr(comment, 'replies_cached', []):
+                    ids.extend(collect_ids(r))
+                return ids
+
+            all_ids = []
+            for c in comments:
+                all_ids.extend(collect_ids(c))
+
+            if all_ids:
+                comment_ct = ContentType.objects.get_for_model(Comment)
+                votes = Vote.objects.filter(user=self.request.user, content_type=comment_ct, object_id__in=all_ids)
+                votes_map = {v.object_id: v.vote_type for v in votes}
+            else:
+                votes_map = {}
+
+            def assign_votes(comment):
+                comment.user_vote = votes_map.get(comment.pk, 0)
+                for r in getattr(comment, 'replies_cached', []):
+                    assign_votes(r)
+
+            for c in comments:
+                assign_votes(c)
+        else:
+            for c in comments:
+                def set_zero(comment):
+                    comment.user_vote = 0
+                    for r in getattr(comment, 'replies_cached', []):
+                        set_zero(r)
+                set_zero(c)
     
         return comments
 
@@ -269,3 +342,89 @@ class CommentDeleteView(LoginRequiredMixin, AuthorRequiredMixin, DeleteView):
         context = super().get_context_data(**kwargs)
         context['cancel_url'] = self.get_success_url()
         return context
+
+@method_decorator(login_required, name='dispatch')
+class VoteView(View):
+    model_map = {
+        "question": Question,
+        "answer": Answer,
+        "comment": Comment,
+    }
+
+    def post(self, request, *args, **kwargs):
+        model = request.POST.get("model")
+        obj_id = request.POST.get("id")
+        vtype = request.POST.get("type")
+
+        if not (model and obj_id and vtype):
+            return HttpResponseBadRequest("Missing parameters")
+
+        try:
+            vote_type = self.validate_vote_type(vtype)
+        except ValueError as e:
+            return HttpResponseBadRequest(str(e))
+
+        try:
+            obj, ct = self.get_object_and_contenttype(model, obj_id)
+        except ValueError as e:
+            return HttpResponseBadRequest(str(e))
+
+        action = self.process_vote(request.user, obj, ct, vote_type)
+
+        upvotes, downvotes = self.get_vote_counts(obj)
+        current_vote = self.get_current_vote(request.user, ct, obj)
+
+        return JsonResponse({
+            "upvotes": upvotes,
+            "downvotes": downvotes,
+            "action": action,
+            "current_vote": current_vote,
+        })
+
+    def validate_vote_type(self, vtype):
+        try:
+            vote_type = int(vtype)
+        except ValueError:
+            raise ValueError(f"Invalid vote type: {vtype}")
+        if vote_type not in (1, -1):
+            raise ValueError(f"Invalid vote type: {vote_type}. Vote type must be 1 or -1.")
+        return vote_type
+
+    def get_object_and_contenttype(self, model_name, obj_id):
+        ModelClass = self.model_map.get(model_name.lower())
+        if ModelClass is None:
+            raise ValueError(f"Invalid model name: {model_name}")
+
+        obj = get_object_or_404(ModelClass, pk=obj_id)
+        ct = ContentType.objects.get_for_model(ModelClass)
+        return obj, ct
+
+    def process_vote(self, user, obj, ct, vote_type):
+
+        try:
+            vote = Vote.objects.get(user=user, content_type=ct, object_id=obj.pk)
+        except Vote.DoesNotExist:
+            vote = None
+
+        if vote is None:
+            Vote.objects.create(user=user, content_object=obj, vote_type=vote_type)
+            return "created"
+        elif vote.vote_type == vote_type:
+            vote.delete()
+            return "deleted"
+        else:
+            vote.vote_type = vote_type
+            vote.save()
+            return "updated"
+
+    def get_vote_counts(self, obj):
+        upvotes = obj.votes.filter(vote_type=1).count()
+        downvotes = obj.votes.filter(vote_type=-1).count()
+        return upvotes, downvotes
+
+    def get_current_vote(self, user, ct, obj):
+        try:
+            current = Vote.objects.get(user=user, content_type=ct, object_id=obj.pk)
+            return current.vote_type
+        except Vote.DoesNotExist:
+            return 0
