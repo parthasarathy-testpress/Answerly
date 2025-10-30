@@ -145,6 +145,18 @@ document.addEventListener("DOMContentLoaded", function () {
   if (overlay) {
     overlay.addEventListener("click", hidePopup);
   }
+  document.addEventListener("click", function(e) {
+  if (e.target.classList.contains("toggle-replies")) {
+    const repliesDiv = e.target.closest(".card-body").querySelector(".replies");
+    if (repliesDiv) {
+      repliesDiv.classList.toggle("d-none");
+      const replyCount = e.target.dataset.replyCount;
+      e.target.textContent = repliesDiv.classList.contains("d-none")
+        ? `View Replies (${replyCount})`
+        : "Hide Replies";
+    }
+  }
+});
 });
 </script>
 

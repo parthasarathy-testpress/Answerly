@@ -179,16 +179,38 @@ class AnswerDetailView(DetailView):
         }
 
     def get_annotated_comments(self, answer):
-        return (
+        comments = (
             Comment.objects.filter(
-                content_type=ContentType.objects.get_for_model(Answer), object_id=answer.pk
+                content_type=ContentType.objects.get_for_model(Answer),
+                object_id=answer.pk,
+                parent__isnull=True
             )
+            .select_related("author")
             .annotate(
                 upvotes=Count("votes", filter=Q(votes__vote_type=1)),
                 downvotes=Count("votes", filter=Q(votes__vote_type=-1)),
             )
             .order_by("-created_at")
         )
+    
+        def annotate_replies(comment):
+            replies = (
+                comment.replies.select_related("author")
+                .annotate(
+                    upvotes=Count("votes", filter=Q(votes__vote_type=1)),
+                    downvotes=Count("votes", filter=Q(votes__vote_type=-1)),
+                )
+                .order_by("-created_at")
+            )
+            for reply in replies:
+                reply.replies_cached = list(annotate_replies(reply))
+            return replies
+    
+        for c in comments:
+            c.replies_cached = list(annotate_replies(c))
+    
+        return comments
+
 
     def post(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
