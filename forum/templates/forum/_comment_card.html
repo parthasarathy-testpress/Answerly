@@ -10,6 +10,9 @@
             <a href="{% url 'comment_update' comment_id=comment.pk %}" class="text-primary fs-5" title="Edit comment">
                 <i class="bi bi-pencil-square"></i>
             </a>
+            <a href="{% url 'comment_delete' comment_id=comment.pk %}" class="text-danger fs-5" title="Delete comment">
+                <i class="bi bi-trash"></i>
+            </a>
         </div>
       {% endif %}
       

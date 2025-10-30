@@ -2,7 +2,7 @@ from django.urls import path
 from .views import QuestionListView,QuestionCreateView,\
     QuestionUpdateView,QuestionDeleteView,QuestionDetailView,\
     AnswerCreateView,AnswerUpdateView,AnswerDeleteView,AnswerDetailView,\
-    CommentUpdateView
+    CommentUpdateView,CommentDeleteView
 
 urlpatterns = [
     path('', QuestionListView.as_view(), name='question_list'),
@@ -15,4 +15,5 @@ urlpatterns = [
     path('answer/<int:answer_id>/delete/', AnswerDeleteView.as_view(), name='answer_delete'),
     path('answers/<int:answer_id>/', AnswerDetailView.as_view(), name='answer_detail'),
     path('comment/<int:comment_id>/edit/', CommentUpdateView.as_view(), name='comment_update'),
+    path('comment/<int:comment_id>/delete/', CommentDeleteView.as_view(), name='comment_delete'),
 ]
