@@ -4,18 +4,30 @@ from django.urls import reverse_lazy
 from ..models import Question
 from ..forms import QuestionForm
 from django.contrib.auth.mixins import LoginRequiredMixin
-from .mixins import AuthorRequiredMixin,QuestionDetailMixin
+from .mixins import AuthorRequiredMixin,QuestionDetailMixin,QuestionFilterMixin
 
-class QuestionListView(ListView):
+from taggit.models import Tag
+
+class QuestionListView(QuestionFilterMixin, ListView):
     model = Question
     template_name = 'forum/question_list.html'
     context_object_name = 'questions'
     paginate_by = 10
 
     def get_queryset(self):
-        return Question.objects.annotate(
+        queryset = self.get_filtered_queryset()
+        queryset = queryset.annotate(
             total_votes=Sum('votes__vote_type', default=0)
         ).order_by('-created_at')
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tags'] = Tag.objects.all().order_by('name')
+        context['search_query'] = self.request.GET.get('question', '')
+        context['selected_tag'] = self.request.GET.get('tag', '')
+        return context
+
 
 
 class QuestionCreateView(LoginRequiredMixin, CreateView):

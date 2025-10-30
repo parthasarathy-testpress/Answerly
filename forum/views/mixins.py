@@ -1,14 +1,33 @@
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.urls import reverse_lazy
 from django.core.paginator import Paginator
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from django.contrib.contenttypes.models import ContentType
-from ..models import Answer, Comment
+from ..models import Answer, Comment,Question
 
 class AuthorRequiredMixin(UserPassesTestMixin):
     def test_func(self):
         obj = self.get_object()
         return self.request.user == obj.author
+
+
+class QuestionFilterMixin:
+
+    def get_filtered_queryset(self):
+        queryset = Question.objects.all()
+        search_query = self.request.GET.get('question')
+        tag_filter = self.request.GET.get('tag')
+        
+        if search_query:
+            queryset = queryset.filter(
+                Q(title__icontains=search_query) |
+                Q(description__icontains=search_query)
+            )
+
+        if tag_filter:
+            queryset = queryset.filter(tags__name__iexact=tag_filter)
+
+        return queryset.distinct()
 
 
 class CommentNavigationMixin:
