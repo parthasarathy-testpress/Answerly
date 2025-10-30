@@ -1,10 +1,12 @@
-from django.test import TestCase, Client
+from django.test import TestCase, Client, RequestFactory
 from django.urls import reverse
 from django.contrib.auth.models import User
 from forum.models import Question,Vote,Answer,Comment
 from django.contrib.contenttypes.models import ContentType
 from forum.forms import CommentForm
 import json
+from forum.views import QuestionListView
+from django.utils import timezone
 
 class QuestionListViewTests(TestCase):
     def setUp(self):
@@ -814,3 +816,45 @@ class VoteViewTests(TestCase):
         d = json.loads(r.content)
         self.assertEqual(int(d['current_vote']), 1)
         self.assertEqual(d['upvotes'], 1)
+
+class QuestionListViewSearchFilterTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.user = User.objects.create_user(username="tester", password="pass123")
+
+        self.q1 = Question.objects.create(
+            title="Learn Django", description="Django basics", author=self.user, created_at=timezone.now()
+        )
+        self.q2 = Question.objects.create(
+            title="Python Tips", description="Advanced Python topics", author=self.user, created_at=timezone.now()
+        )
+        self.q3 = Question.objects.create(
+            title="Web Development", description="Using Django and Flask", author=self.user, created_at=timezone.now()
+        )
+
+        self.q1.tags.add("django")
+        self.q2.tags.add("python")
+        self.q3.tags.add("django", "python")
+
+    def get_queryset(self, params=None):
+        request = self.factory.get("/", params or {})
+        request.user = self.user
+        view = QuestionListView()
+        view.request = request
+        return view.get_queryset()
+
+    def test_should_search_questions_by_title_or_description(self):
+        queryset = self.get_queryset({"question": "django"})
+        self.assertIn(self.q1, queryset)
+        self.assertIn(self.q3, queryset)
+        self.assertNotIn(self.q2, queryset)
+
+    def test_should_filter_questions_by_tag_name(self):
+        queryset = self.get_queryset({"tag": "python"})
+        self.assertIn(self.q2, queryset)
+        self.assertIn(self.q3, queryset)
+        self.assertNotIn(self.q1, queryset)
+
+    def test_should_clear_search_and_filter_when_no_params(self):
+        queryset = self.get_queryset()
+        self.assertCountEqual(queryset, [self.q1, self.q2, self.q3])
