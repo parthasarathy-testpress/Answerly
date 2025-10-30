@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from forum.models import Question,Vote,Answer
+from forum.models import Question,Vote,Answer,Comment
 from django.contrib.contenttypes.models import ContentType
 
 class QuestionListViewTests(TestCase):
@@ -409,3 +409,36 @@ class AnswerDetailViewTests(TestCase):
         invalid_url = reverse("answer_detail", kwargs={"answer_id": 9999})
         response = self.client.get(invalid_url)
         self.assertEqual(response.status_code, 404)
+        
+    def test_comments_paginated(self):
+        self.client.login(username="user1", password="pass123")
+
+        comments = [
+            Comment.objects.create(
+                author=self.user1,
+                content=f"Comment {i}",
+                content_object=self.answer,
+            )
+            for i in range(5)
+        ]
+
+        response_page1 = self.client.get(self.detail_url)
+        response_page2 = self.client.get(self.detail_url + "?page=2")
+
+        self.assertEqual(response_page1.status_code, 200)
+        self.assertTrue(response_page1.context["is_paginated"])
+        self.assertEqual(len(response_page1.context["comments"]), 3)
+        self.assertEqual(len(response_page2.context["comments"]), 2)
+
+    def test_comment_count_displayed_in_template(self):
+        Comment.objects.create(
+            author=self.user1, content="First", content_object=self.answer
+        )
+        Comment.objects.create(
+            author=self.user2, content="Second", content_object=self.answer
+        )
+
+        response = self.client.get(self.detail_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("comments", response.context)
+        self.assertEqual(response.context["comments"].paginator.count, 2)
