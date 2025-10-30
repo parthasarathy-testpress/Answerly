@@ -227,3 +227,25 @@ class AnswerDetailView(DetailView):
 
         context = self.get_context_data(comment_form=form)
         return self.render_to_response(context)
+
+
+class CommentUpdateView(LoginRequiredMixin, AuthorRequiredMixin, UpdateView):
+    model = Comment
+    form_class = CommentForm
+    template_name = "forum/comment_update_form.html"
+    pk_url_kwarg = 'comment_id'
+    _success_url = None
+
+    def get_success_url(self):
+        if self._success_url is None:
+            root = self.object
+            while root.parent is not None:
+                root = root.parent
+            answer = root.content_object
+            self._success_url = reverse_lazy('answer_detail', kwargs={'answer_id': answer.pk})
+        return self._success_url
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['cancel_url'] = self.get_success_url()
+        return context

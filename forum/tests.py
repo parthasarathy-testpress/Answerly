@@ -3,6 +3,7 @@ from django.urls import reverse
 from django.contrib.auth.models import User
 from forum.models import Question,Vote,Answer,Comment
 from django.contrib.contenttypes.models import ContentType
+from forum.forms import CommentForm
 
 class QuestionListViewTests(TestCase):
     def setUp(self):
@@ -589,3 +590,52 @@ class AnswerDetailNestedRepliesTests(TestCase):
 
         for comment in response.context["comments"]:
             self.assertTrue(hasattr(comment, "replies_cached"))
+
+class CommentUpdateViewTests(TestCase):
+    def setUp(self):
+        self.author = User.objects.create_user(username="author", password="testpass123")
+        self.other_user = User.objects.create_user(username="other", password="testpass123")
+
+        self.question = Question.objects.create(
+            title="Sample Question", description="Desc", author=self.author
+        )
+        self.answer = Answer.objects.create(
+            question=self.question, content="Sample Answer", author=self.author
+        )
+
+        self.comment = Comment.objects.create(
+            content="Original Comment",
+            author=self.author,
+            content_object=self.answer
+        )
+
+        self.url = reverse("comment_update", kwargs={"comment_id": self.comment.id})
+
+    def test_login_required(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/", response.url)
+
+    def test_author_can_view_update_form(self):
+        self.client.login(username="author", password="testpass123")
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "forum/comment_update_form.html")
+        self.assertIsInstance(response.context["form"], CommentForm)
+        self.assertEqual(response.context["comment"], self.comment)
+
+    def test_non_author_cannot_edit_comment(self):
+        self.client.login(username="other", password="testpass123")
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 403)
+
+    def test_author_can_update_comment(self):
+        self.client.login(username="author", password="testpass123")
+        response = self.client.post(self.url, {"content": "Updated Comment"})
+        self.comment.refresh_from_db()
+        self.assertEqual(self.comment.content, "Updated Comment")
+        self.assertRedirects(
+            response,
+            reverse("answer_detail", kwargs={"answer_id": self.answer.id})
+        )
+
