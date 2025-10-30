@@ -1,12 +1,13 @@
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import ListView,CreateView,UpdateView,DeleteView,DetailView
 from django.db.models import Sum,Count,Q
 from .models import Question, Vote,Answer,Comment
 from django.contrib.auth.mixins import LoginRequiredMixin,UserPassesTestMixin
 from django.urls import reverse_lazy
-from .forms import QuestionForm,AnswerForm
+from .forms import QuestionForm,AnswerForm,CommentForm
 from django.core.paginator import Paginator
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth.views import redirect_to_login
 
 class QuestionListView(ListView):
     model = Question
@@ -154,6 +155,7 @@ class AnswerDetailView(DetailView):
             context.update(self.get_answer_vote_context(answer))
             context.update(self.get_paginated_comments_context(answer))
             context["question"] = answer.question
+            context["comment_form"] = kwargs.get("comment_form", CommentForm())
             return context
 
     def get_answer_vote_context(self, answer):

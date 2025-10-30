@@ -52,6 +52,17 @@
           </div>
         </div>
 
+        <!-- ✅ Floating Comment Button -->
+        {% if user.is_authenticated %}
+        <button
+          id="comment-toggle-btn"
+          class="btn btn-primary rounded-circle position-absolute"
+          style="bottom: 15px; right: 15px; width: 45px; height: 45px;"
+          title="Add Comment"
+        >
+          <i class="bi bi-chat-dots fs-5"></i>
+        </button>
+        {% endif %}
       </div>
       <a href="{% url 'question_detail' question.pk %}" 
          class="btn btn-outline-secondary mb-4 px-4 py-2">
