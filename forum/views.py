@@ -12,6 +12,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.http import JsonResponse, HttpResponseBadRequest
 from django.contrib.auth.decorators import login_required
+from taggit.models import Tag
 
 class QuestionListView(ListView):
     model = Question
@@ -20,9 +21,31 @@ class QuestionListView(ListView):
     paginate_by = 10
 
     def get_queryset(self):
-        return Question.objects.annotate(
+        queryset = Question.objects.all()
+        search_query = self.request.GET.get('question')
+        tag_filter = self.request.GET.get('tag')
+        
+        if search_query:
+            queryset = queryset.filter(
+                Q(title__icontains=search_query) |
+                Q(description__icontains=search_query)
+            )
+            
+        if tag_filter:
+            queryset = queryset.filter(tags__name__iexact=tag_filter)
+
+        queryset = queryset.annotate(
             total_votes=Sum('votes__vote_type', default=0)
         ).order_by('-created_at')
+        
+        return queryset.distinct()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tags'] = Tag.objects.all().order_by('name')
+        context['search_query'] = self.request.GET.get('question', '')
+        context['selected_tag'] = self.request.GET.get('tag', '')
+        return context
 
 class QuestionCreateView(LoginRequiredMixin, CreateView):
     model = Question
