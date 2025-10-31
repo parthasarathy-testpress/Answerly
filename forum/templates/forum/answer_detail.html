@@ -51,18 +51,6 @@
             {% endif %}
           </div>
         </div>
-
-        <!-- ✅ Floating Comment Button -->
-        {% if user.is_authenticated %}
-        <button
-          id="comment-toggle-btn"
-          class="btn btn-primary rounded-circle position-absolute"
-          style="bottom: 15px; right: 15px; width: 45px; height: 45px;"
-          title="Add Comment"
-        >
-          <i class="bi bi-chat-dots fs-5"></i>
-        </button>
-        {% endif %}
       </div>
       <a href="{% url 'question_detail' question.pk %}" 
          class="btn btn-outline-secondary mb-4 px-4 py-2">
@@ -73,6 +61,31 @@
       <hr class="my-4">
       <h4 class="mt-4 mb-3">Comments ({{ comments.paginator.count }})</h4>
 
+      <!-- ✅ Inline Comment Box -->
+      <div class="card shadow-sm border-0 rounded-3 mb-4">
+        <div class="card-body">
+          <form id="comment-form" method="post" action="">
+            {% csrf_token %}
+            <div>
+              <textarea
+                name="content"
+                id="id_content"
+                class="form-control mb-3"
+                rows="4"
+                placeholder="Add a public comment..."
+                required
+                style="resize: vertical;"
+              ></textarea>
+              <div class="d-flex justify-content-end gap-2">
+                <button type="reset" class="btn btn-outline-danger btn-sm">Clear</button>
+                <button type="submit" class="btn btn-primary btn-sm">Comment</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ✅ Render Comments -->
       {% for comment in comments %}
         {% include "forum/_comment_card.html" with comment=comment %}
       {% empty %}
@@ -85,66 +98,34 @@
     </div>
   </div>
 </div>
-
-<!-- ✅ Popup Comment Form -->
-{% if user.is_authenticated %}
-<div
-  id="comment-popup"
-  class="position-fixed top-50 start-50 translate-middle bg-white border rounded-3 shadow-lg p-4"
-  style="z-index: 1050; display: none; width: 400px;"
->
-  <h5 class="mb-3 text-center text-primary">Add Comment</h5>
-  <form id="comment-form" method="post" action="">
-    {% csrf_token %}
-    <textarea
-      name="content"
-      id="id_content"
-      class="form-control mb-3"
-      rows="3"
-      placeholder="Write your comment..."
-      required
-    ></textarea>
-    <div class="d-flex justify-content-end gap-2">
-      <button type="button" id="cancel-btn" class="btn btn-outline-secondary">Cancel</button>
-      <button type="submit" class="btn btn-primary">Post</button>
-    </div>
-  </form>
-</div>
-<div
-  id="popup-overlay"
-  class="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50"
-  style="display: none; z-index: 1040;"
-></div>
-{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  const toggleBtn = document.getElementById("comment-toggle-btn");
-  const popup = document.getElementById("comment-popup");
-  const overlay = document.getElementById("popup-overlay");
-  const cancelBtn = document.getElementById("cancel-btn");
 
-  if (toggleBtn) {
-    toggleBtn.addEventListener("click", () => {
-      popup.style.display = "block";
-      overlay.style.display = "block";
+  const commentForm = document.getElementById("comment-form");
+  if (commentForm) {
+    commentForm.addEventListener("submit", function (e) {
+      {% if not user.is_authenticated %}
+        e.preventDefault();
+
+        if (!document.querySelector(".login-warning-alert")) {
+          const alertDiv = document.createElement("div");
+          alertDiv.className = "alert alert-warning alert-dismissible fade show login-warning-alert mt-3";
+          alertDiv.role = "alert";
+          alertDiv.innerHTML = `
+            <strong>⚠️ Please login</strong> to add a comment.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          `;
+          commentForm.parentElement.prepend(alertDiv);
+        }
+        return;
+      {% endif %}
     });
   }
 
-  function hidePopup() {
-    popup.style.display = "none";
-    overlay.style.display = "none";
-  }
-  
-  if (cancelBtn) {
-    cancelBtn.addEventListener("click", hidePopup);
-  }
-
-  if (overlay) {
-    overlay.addEventListener("click", hidePopup);
-  }
+  // ✅ Handle showing/hiding replies
   document.addEventListener("click", function(e) {
   if (e.target.classList.contains("toggle-replies")) {
     const repliesDiv = e.target.closest(".card-body").querySelector(".replies");
@@ -156,7 +137,6 @@ document.addEventListener("DOMContentLoaded", function () {
         : "Hide Replies";
     }
   }
-});
 });
 document.addEventListener("click", function (e) {
   // --- Show reply form ---
@@ -216,8 +196,7 @@ document.addEventListener("submit", async function (e) {
     }
   }
 });
-
-
+});
 </script>
 
 {% endblock %}
