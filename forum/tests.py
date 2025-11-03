@@ -639,3 +639,42 @@ class CommentUpdateViewTests(TestCase):
             reverse("answer_detail", kwargs={"answer_id": self.answer.id})
         )
 
+class CommentDeleteViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='user1', password='pass')
+        self.other_user = User.objects.create_user(username='user2', password='pass')
+
+        self.question = Question.objects.create(
+            title="Test Question", description="desc", author=self.user
+        )
+        self.answer = Answer.objects.create(
+            question=self.question, content="Answer content", author=self.user
+        )
+        self.comment = Comment.objects.create(
+            content_object=self.answer, author=self.user, content="A comment"
+        )
+        self.url = reverse('comment_delete', kwargs={'comment_id': self.comment.id})
+
+    def test_redirect_if_not_logged_in(self):
+        response = self.client.get(self.url)
+        self.assertRedirects(response, f'/accounts/login/?next={self.url}')
+
+    def test_forbidden_if_not_author(self):
+        self.client.login(username='user2', password='pass')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 403)
+
+    def test_delete_own_comment(self):
+        self.client.login(username='user1', password='pass')
+        response = self.client.post(self.url, follow=True)
+        self.assertRedirects(
+            response,
+            reverse('answer_detail', kwargs={'answer_id': self.answer.id})
+        )
+        self.assertFalse(Comment.objects.filter(id=self.comment.id).exists())
+
+    def test_delete_confirmation_page_loads(self):
+        self.client.login(username='user1', password='pass')
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Are you sure you want to delete this comment?")
