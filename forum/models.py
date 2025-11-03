@@ -1,10 +1,11 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from taggit.managers import TaggableManager
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.db.models import Sum, Case, When, IntegerField
 
+User = get_user_model()
 
 class TimeStampedModel(models.Model):
     """
