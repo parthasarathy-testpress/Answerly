@@ -678,3 +678,77 @@ class CommentDeleteViewTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Are you sure you want to delete this comment?")
+
+class CommentReplyTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="john", password="pass123")
+        self.question = Question.objects.create(
+            title="Sample Question",
+            description="This is a question body.",
+            author=self.user,
+        )
+        self.answer = Answer.objects.create(
+            question=self.question,
+            content="This is an answer.",
+            author=self.user,
+        )
+        self.parent_comment = Comment.objects.create(
+            content_object=self.answer,
+            author=self.user,
+            content="This is a parent comment.",
+        )
+        self.url = reverse("answer_detail", args=[self.answer.id])
+
+    def test_authenticated_user_can_post_reply(self):
+        self.client.login(username="john", password="pass123")
+        response = self.client.post(
+            self.url,
+            {
+                "content": "This is a reply comment.",
+                "parent": self.parent_comment.id,
+            },
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        reply = Comment.objects.filter(parent=self.parent_comment).first()
+        self.assertIsNotNone(reply)
+        self.assertEqual(reply.content, "This is a reply comment.")
+        self.assertEqual(reply.author, self.user)
+        self.assertEqual(reply.content_object, self.answer)
+
+
+    def test_invalid_reply_comment_empty_content(self):
+        content_type = ContentType.objects.get_for_model(Answer)
+        url = reverse("answer_detail", kwargs={"answer_id": self.answer.pk})
+
+        data = {
+            "content": "",
+            "parent": self.parent_comment.id,
+        }
+
+        response = self.client.post(url, data, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Comment.objects.count(), 1)
+
+        replies = Comment.objects.filter(parent=self.parent_comment)
+        self.assertEqual(replies.count(), 0)
+
+    def test_anonymous_user_cannot_reply(self):
+        response = self.client.post(
+            self.url,
+            {"content": "Anonymous reply", "parent": self.parent_comment.id},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login", response.url)
+        self.assertEqual(Comment.objects.count(), 1)
+
+    def test_reply_is_associated_with_correct_parent(self):
+        self.client.login(username="john", password="pass123")
+        self.client.post(
+            self.url,
+            {"content": "Child reply", "parent": self.parent_comment.id},
+        )
+        reply = Comment.objects.filter(parent=self.parent_comment).first()
+        self.assertIsNotNone(reply)
+        self.assertEqual(reply.parent, self.parent_comment)
+        self.assertEqual(reply.content_object, self.answer)

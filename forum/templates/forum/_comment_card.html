@@ -35,6 +35,40 @@
       {% endif %}
     </div>
 
+    <div class="reply-form-container mt-3 d-none">
+      <form class="reply-form" method="post" data-parent-id="{{ comment.id }}">
+        {% csrf_token %}
+        <textarea 
+          name="content" 
+          rows="2" 
+          class="form-control mb-2" 
+          placeholder="Write a reply..." 
+          required></textarea>
+    
+    
+        <input type="hidden" name="parent" value="{{ comment.id }}">
+    
+        <div class="d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-outline-secondary btn-sm cancel-reply">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary btn-sm">
+            Post Reply
+          </button>
+        </div>
+      </form>
+    </div>
+
+
+
+    {% if user.is_authenticated %}
+      <div class="d-flex justify-content-end mt-3">
+        <button type="button" class="btn btn-outline-primary btn-sm reply-btn">
+          <i class="bi bi-reply me-1"></i> Reply
+        </button>
+      </div>
+    {% endif %}
+
     {% if comment.replies_cached %}
       <div class="replies mt-3 ps-4 border-start d-none">
         {% for reply in comment.replies_cached %}
