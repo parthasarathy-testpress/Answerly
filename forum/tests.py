@@ -1,15 +1,17 @@
 from django.test import TestCase, Client
 from django.urls import reverse
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from forum.models import Question,Vote,Answer,Comment
 from django.contrib.contenttypes.models import ContentType
 from forum.forms import CommentForm
 
+User = get_user_model()
+
 class QuestionListViewTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user = User.objects.create_user(username='testuser', password='pass123')
-        self.user2 = User.objects.create_user(username='otheruser', password='pass123')
+        self.user = User.objects.create_user(username='testuser', email='test@example.com', password='pass123')
+        self.user2 = User.objects.create_user(username='otheruser', email='test1@example.com', password='pass123')
 
         for i in range(15):
             Question.objects.create(
@@ -48,7 +50,7 @@ class QuestionListViewTests(TestCase):
 class QuestionCreateViewTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user = User.objects.create_user(username='testuser', password='pass123')
+        self.user = User.objects.create_user(username='testuser', email='test@example.com', password='pass123')
         self.url = reverse('question_post')
 
     def test_redirect_if_not_logged_in(self):
@@ -80,8 +82,8 @@ class QuestionCreateViewTests(TestCase):
 
 class QuestionUpdateViewTests(TestCase):
     def setUp(self):
-        self.author = User.objects.create_user(username='author', password='pass1234')
-        self.other_user = User.objects.create_user(username='other', password='pass1234')
+        self.author = User.objects.create_user(username='author', email='test@example.com', password='pass1234')
+        self.other_user = User.objects.create_user(username='other', email='test1@example.com', password='pass1234')
 
         self.question = Question.objects.create(
             title='Original Title',
@@ -110,8 +112,8 @@ class QuestionUpdateViewTests(TestCase):
 
 class QuestionDeleteViewTests(TestCase):
     def setUp(self):
-        self.author = User.objects.create_user(username='author', password='pass1234')
-        self.other_user = User.objects.create_user(username='other', password='pass1234')
+        self.author = User.objects.create_user(username='author', email='test@example.com', password='pass1234')
+        self.other_user = User.objects.create_user(username='other', email='test1@example.com', password='pass1234')
 
         self.question = Question.objects.create(
             title='Original Title',
@@ -149,8 +151,8 @@ class QuestionDeleteViewTests(TestCase):
 class QuestionDetailViewTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user1 = User.objects.create_user(username="user1", password="pass123")
-        self.user2 = User.objects.create_user(username="user2", password="pass123")
+        self.user1 = User.objects.create_user(username="user1", email='test@example.com', password="pass123")
+        self.user2 = User.objects.create_user(username="user2", email='test1@example.com', password="pass123")
         self.question = Question.objects.create(
             title="Test Question",
             description="Test Description",
@@ -175,7 +177,7 @@ class QuestionDetailViewTests(TestCase):
 class AnswerListPaginationTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user = User.objects.create_user(username="user1", password="pass123")
+        self.user = User.objects.create_user(username="user1", email='test@example.com', password="pass123")
         self.question = Question.objects.create(
             title="Question for Pagination Test",
             description="Testing answers pagination",
@@ -221,8 +223,8 @@ class AnswerListPaginationTests(TestCase):
 class AnswerCreateViewTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user = User.objects.create_user(username="testuser", password="pass123")
-        self.other_user = User.objects.create_user(username="otheruser", password="pass123")
+        self.user = User.objects.create_user(username="testuser", email='test@example.com', password="pass123")
+        self.other_user = User.objects.create_user(username="otheruser", email='test1@example.com', password="pass123")
         self.question = Question.objects.create(
             title="Test Question",
             description="Test Description",
@@ -269,8 +271,8 @@ class AnswerCreateViewTests(TestCase):
 class AnswerUpdateViewTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user1 = User.objects.create_user(username="user1", password="pass123")
-        self.user2 = User.objects.create_user(username="user2", password="pass123")
+        self.user1 = User.objects.create_user(username="user1", email='test@example.com', password="pass123")
+        self.user2 = User.objects.create_user(username="user2", email='test1@example.com', password="pass123")
         self.question = Question.objects.create(
             title="Test Question",
             description="Test Description",
@@ -316,8 +318,8 @@ class AnswerUpdateViewTests(TestCase):
 class AnswerDeleteViewTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user1 = User.objects.create_user(username="user1", password="pass123")
-        self.user2 = User.objects.create_user(username="user2", password="pass123")
+        self.user1 = User.objects.create_user(username="user1", email='test@example.com', password="pass123")
+        self.user2 = User.objects.create_user(username="user2", email='test1@example.com', password="pass123")
         self.question = Question.objects.create(
             title="Test Question",
             description="Test Description",
@@ -364,8 +366,8 @@ class AnswerDeleteViewTests(TestCase):
 class AnswerDetailViewTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.user1 = User.objects.create_user(username="user1", password="pass123")
-        self.user2 = User.objects.create_user(username="user2", password="pass123")
+        self.user1 = User.objects.create_user(username="user1", email='test1@example.com', password="pass123")
+        self.user2 = User.objects.create_user(username="user2", email='test@example.com', password="pass123")
         
         self.question = Question.objects.create(
             title="Test Question",
@@ -475,7 +477,7 @@ class AnswerDetailViewTests(TestCase):
 
 class AnswerDetailNestedRepliesTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="tester", password="pass123")
+        self.user = User.objects.create_user(username="tester", email='test@example.com', password="pass123")
 
         self.question = Question.objects.create(
             title="Q1",
@@ -593,8 +595,8 @@ class AnswerDetailNestedRepliesTests(TestCase):
 
 class CommentUpdateViewTests(TestCase):
     def setUp(self):
-        self.author = User.objects.create_user(username="author", password="testpass123")
-        self.other_user = User.objects.create_user(username="other", password="testpass123")
+        self.author = User.objects.create_user(username="author", email='test@example.com', password="testpass123")
+        self.other_user = User.objects.create_user(username="other", email='test1@example.com', password="testpass123")
 
         self.question = Question.objects.create(
             title="Sample Question", description="Desc", author=self.author
@@ -641,8 +643,8 @@ class CommentUpdateViewTests(TestCase):
 
 class CommentDeleteViewTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username='user1', password='pass')
-        self.other_user = User.objects.create_user(username='user2', password='pass')
+        self.user = User.objects.create_user(username='user1', email='test1@example.com', password='pass')
+        self.other_user = User.objects.create_user(username='user2', email='test@example.com', password='pass')
 
         self.question = Question.objects.create(
             title="Test Question", description="desc", author=self.user
@@ -681,7 +683,7 @@ class CommentDeleteViewTests(TestCase):
 
 class CommentReplyTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="john", password="pass123")
+        self.user = User.objects.create_user(username="john", email='test@example.com', password="pass123")
         self.question = Question.objects.create(
             title="Sample Question",
             description="This is a question body.",
