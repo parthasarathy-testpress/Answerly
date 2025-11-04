@@ -12,11 +12,11 @@
     <p class="mb-3">{{ answer.content }}</p>
 
     <div class="d-flex gap-2 align-items-center">
-      <button class="btn btn-outline-success btn-sm" data-type="1" data-id="{{ answer.id }}">
-        <i class="bi bi-hand-thumbs-up"></i> ({{ answer.upvotes }})
+      <button class="btn btn-outline-success btn-sm {% if request.user.is_authenticated and answer.user_vote == 1 %}voted-up{% endif %}" data-type="1" data-id="{{ answer.id }}" data-model="answer">
+        <i class="bi bi-hand-thumbs-up"></i> (<span class="vote-count" data-model="answer" data-id="{{ answer.id }}" data-type="1">{{ answer.upvotes }}</span>)
       </button>
-      <button class="btn btn-outline-danger btn-sm" data-type="-1" data-id="{{ answer.id }}">
-        <i class="bi bi-hand-thumbs-down"></i> ({{ answer.downvotes }})
+      <button class="btn btn-outline-danger btn-sm {% if request.user.is_authenticated and answer.user_vote == -1 %}voted-down{% endif %}" data-type="-1" data-id="{{ answer.id }}" data-model="answer">
+        <i class="bi bi-hand-thumbs-down"></i> (<span class="vote-count" data-model="answer" data-id="{{ answer.id }}" data-type="-1">{{ answer.downvotes }}</span>)
       </button>
     </div>
 

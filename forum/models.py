@@ -90,7 +90,7 @@ class Answer(TimeStampedModel,VoteCountMixin):
         return f"Answer by {self.author.username} to '{self.question.title}'"
 
 
-class Comment(TimeStampedModel):
+class Comment(TimeStampedModel,VoteCountMixin):
     """
     Represents a comment on a question, answer, or another comment.
     """

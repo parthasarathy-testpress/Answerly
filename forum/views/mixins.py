@@ -3,7 +3,7 @@ from django.urls import reverse_lazy
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
 from django.contrib.contenttypes.models import ContentType
-from ..models import Answer, Comment
+from ..models import Answer, Comment, Vote
 
 class AuthorRequiredMixin(UserPassesTestMixin):
     def test_func(self):
@@ -45,10 +45,25 @@ class AnswerMetaMixin:
 class VoteContextMixin:
     def get_single_object_vote_context(self, obj, prefix):
         vote_counts = obj.get_vote_counts()
-        return {
+        context = {
             f"{prefix}_upvotes": vote_counts["upvotes"],
             f"{prefix}_downvotes": vote_counts["downvotes"],
         }
+    
+        user = self.request.user
+        if not user.is_authenticated:
+            context[f"{prefix}_user_vote"] = 0
+            return context
+    
+        try:
+            content_type = ContentType.objects.get_for_model(obj.__class__)
+            vote = Vote.objects.get(user=user, content_type=content_type, object_id=obj.pk)
+            context[f"{prefix}_user_vote"] = vote.vote_type
+        except Vote.DoesNotExist:
+            context[f"{prefix}_user_vote"] = 0
+    
+        return context
+
 
 class PaginationMixin:
     paginate_by = None
@@ -63,9 +78,61 @@ class PaginationMixin:
             "page_obj": page_obj,
             "is_paginated": page_obj.has_other_pages(),
         }
+   
+     
+class AssignUserVotesMixin:
+
+    def assign_user_votes_to_queryset(self, queryset, user, model):
+        if user.is_authenticated:
+            ids = [obj.pk for obj in queryset]
+            votes_map = self.get_user_votes_map(user, model, ids)
+            for obj in queryset:
+                obj.user_vote = votes_map.get(obj.pk, 0)
+        else:
+            for obj in queryset:
+                obj.user_vote = 0
+        return queryset 
+
+    def assign_user_votes_to_nested_comments(self, comments, user):
+        def collect_ids(comment):
+            ids = [comment.pk]
+            for reply in getattr(comment, 'replies_cached', []):
+                ids.extend(collect_ids(reply))
+            return ids
+
+        all_ids = []
+        for comment in comments:
+            all_ids.extend(collect_ids(comment))
+
+        votes_map = (
+            self.get_user_votes_map(user, comments.model, all_ids)
+            if user.is_authenticated else {}
+        )
+
+        def assign(comment):
+            comment.user_vote = votes_map.get(comment.pk, 0)
+            for reply in getattr(comment, 'replies_cached', []):
+                assign(reply)
+
+        for comment in comments:
+            assign(comment)
+
+        return comments
+
+    def get_user_votes_map(self, user, model, object_ids):
+        if not object_ids:
+            return {}
+        content_type = ContentType.objects.get_for_model(model)
+        votes = Vote.objects.filter(
+            user=user,
+            content_type=content_type,
+            object_id__in=object_ids
+        )
+        return {vote.object_id: vote.vote_type for vote in votes}
 
 
-class QuestionDetailMixin(VoteContextMixin, PaginationMixin):
+
+class QuestionDetailMixin(VoteContextMixin, PaginationMixin, AssignUserVotesMixin):
     paginate_by = 3
 
     def get_question_vote_context(self, question):
@@ -79,10 +146,11 @@ class QuestionDetailMixin(VoteContextMixin, PaginationMixin):
             )
             .order_by('-created_at')
         )
+        answers_qs = self.assign_user_votes_to_queryset(answers_qs, self.request.user, Answer)
         return self.get_paginated_context(answers_qs, "answers")
 
 
-class AnswerDetailMixin(VoteContextMixin, PaginationMixin):
+class AnswerDetailMixin(VoteContextMixin, PaginationMixin, AssignUserVotesMixin):
     paginate_by = 3
 
     def get_answer_vote_context(self, answer):
@@ -110,6 +178,7 @@ class AnswerDetailMixin(VoteContextMixin, PaginationMixin):
         for comment in comments:
             comment.replies_cached = list(self.get_vote_annotated_replies(comment))
 
+        comments = self.assign_user_votes_to_nested_comments(comments, self.request.user)
         return comments
     
     def get_vote_annotated_replies(self,comment):

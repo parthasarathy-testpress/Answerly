@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from forum.models import Question,Vote,Answer,Comment
 from django.contrib.contenttypes.models import ContentType
 from forum.forms import CommentForm
+import json
 
 User = get_user_model()
 
@@ -754,3 +755,64 @@ class CommentReplyTests(TestCase):
         self.assertIsNotNone(reply)
         self.assertEqual(reply.parent, self.parent_comment)
         self.assertEqual(reply.content_object, self.answer)
+
+
+class VoteViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username='voter', email='test@example.com', password='pass')
+        self.other = User.objects.create_user(username='other', email='test1@example.com', password='pass')
+
+        self.question = Question.objects.create(
+            title='Vote Q', description='Vote test', author=self.other
+        )
+        self.answer = Answer.objects.create(
+            question=self.question, author=self.other, content='ans'
+        )
+        self.comment = Comment.objects.create(
+            content_object=self.answer, author=self.other, content='c'
+        )
+
+    def test_create_and_toggle_vote_on_question(self):
+        self.client.login(username='voter', password='pass')
+        url = reverse('vote')
+
+        resp = self.client.post(url, {'model': 'question', 'id': self.question.pk, 'type': '1'})
+        self.assertEqual(resp.status_code, 200)
+        data = json.loads(resp.content)
+        self.assertEqual(data['upvotes'], 1)
+        self.assertEqual(data['downvotes'], 0)
+        self.assertEqual(int(data['current_vote']), 1)
+        self.assertTrue(Vote.objects.filter(user=self.user, object_id=self.question.pk).exists())
+
+        resp2 = self.client.post(url, {'model': 'question', 'id': self.question.pk, 'type': '1'})
+        self.assertEqual(resp2.status_code, 200)
+        data2 = json.loads(resp2.content)
+        self.assertEqual(data2['upvotes'], 0)
+        self.assertEqual(int(data2['current_vote']), 0)
+        self.assertFalse(Vote.objects.filter(user=self.user, object_id=self.question.pk).exists())
+
+    def test_switch_vote_on_answer(self):
+        self.client.login(username='voter', password='pass')
+        url = reverse('vote')
+
+        r1 = self.client.post(url, {'model': 'answer', 'id': self.answer.pk, 'type': '1'})
+        self.assertEqual(r1.status_code, 200)
+        d1 = json.loads(r1.content)
+        self.assertEqual(int(d1['current_vote']), 1)
+
+        r2 = self.client.post(url, {'model': 'answer', 'id': self.answer.pk, 'type': '-1'})
+        self.assertEqual(r2.status_code, 200)
+        d2 = json.loads(r2.content)
+        self.assertEqual(int(d2['current_vote']), -1)
+        self.assertEqual(d2['upvotes'], 0)
+        self.assertEqual(d2['downvotes'], 1)
+
+    def test_vote_on_comment(self):
+        self.client.login(username='voter', password='pass')
+        url = reverse('vote')
+        r = self.client.post(url, {'model': 'comment', 'id': self.comment.pk, 'type': '1'})
+        self.assertEqual(r.status_code, 200)
+        d = json.loads(r.content)
+        self.assertEqual(int(d['current_vote']), 1)
+        self.assertEqual(d['upvotes'], 1)

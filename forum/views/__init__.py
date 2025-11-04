@@ -12,3 +12,4 @@ from .answer_views import (
     AnswerDetailView,
 )
 from .comment_views import CommentUpdateView, CommentDeleteView
+from .vote_view import VoteView

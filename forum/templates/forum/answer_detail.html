@@ -30,12 +30,12 @@
 
 
             <div class="d-flex align-items-center gap-3 mt-3">
-              <button id="upvote-btn" class="btn btn-outline-success btn-sm">
-                <i class="bi bi-hand-thumbs-up"></i> ({{ answer_upvotes }})
+              <button id="upvote-btn" class="btn btn-outline-success btn-sm {% if request.user.is_authenticated and answer_user_vote == 1 %}voted-up{% endif %}" data-type="1" data-id="{{ answer.id }}" data-model="answer">
+                <i class="bi bi-hand-thumbs-up"></i> (<span id="answer-upvote-count">{{ answer_upvotes }}</span>)
               </button>
-            
-              <button id="downvote-btn" class="btn btn-outline-danger btn-sm">
-                <i class="bi bi-hand-thumbs-down"></i> ({{ answer_downvotes }})
+
+              <button id="downvote-btn" class="btn btn-outline-danger btn-sm {% if request.user.is_authenticated and answer_user_vote == -1 %}voted-down{% endif %}" data-type="-1" data-id="{{ answer.id }}" data-model="answer">
+                <i class="bi bi-hand-thumbs-down"></i> (<span id="answer-downvote-count">{{ answer_downvotes }}</span>)
               </button>
             </div>
 

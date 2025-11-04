@@ -14,6 +14,23 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
     {% block extra_css %}{% endblock %}
+    <style>
+      .voted-up {
+        color: #ffffff !important;
+        background-color: #45ba81 !important;
+        border-color: #198754 !important;
+      }
+      
+      .voted-down {
+        color: #ffffff !important;
+        background-color: #fc5b6b !important;
+        border-color: #dc3545 !important;
+      }
+      
+      .vote-count-updated {
+        font-weight: 600;
+      }
+    </style>  
   </head>
 
   <body class="d-flex flex-column min-vh-100" style="padding-top:55px;">
@@ -103,7 +120,7 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
+    {% include 'forum/vote_script.html' %}
     {% block extra_js %}{% endblock %}
   </body>
 </html>

@@ -1,0 +1,118 @@
+<script>
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      // Does this cookie string begin with the name we want?
+      if (cookie.substring(0, name.length + 1) === name + "=") {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+document.addEventListener("click", function (e) {
+  const btn = e.target.closest('button[data-id][data-type]');
+  if (!btn) return;
+
+  // prevent clicks on disabled or non-interactive
+  if (btn.disabled) return;
+
+  const objId = btn.dataset.id;
+  const model = btn.dataset.model;
+  const type = btn.dataset.type; // '1' or '-1'
+
+  if (!objId || !model || !type) return;
+
+  const csrftoken = getCookie('csrftoken');
+
+  // If user is not authenticated (no csrftoken usually means not logged in)
+  if (!csrftoken) {
+    alert('Please log in to vote.');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('model', model);
+  formData.append('id', objId);
+  formData.append('type', type);
+
+  fetch("{% url 'vote' %}", {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': csrftoken,
+    },
+    body: formData,
+    credentials: 'same-origin'
+  })
+    .then((resp) => {
+      if (resp.status === 401 || resp.redirected) {
+        alert('Please log in to vote.');
+        return;
+      }
+      if (!resp.ok) throw new Error(`Network response was not ok, status: ${resp.status}`);
+      return resp.json();
+    })
+    .then((data) => {
+      if (!data) return;
+      // Update inline vote-count spans
+      const upSpan = document.querySelector(`.vote-count[data-model="${model}"][data-id="${objId}"][data-type="1"]`);
+      const downSpan = document.querySelector(`.vote-count[data-model="${model}"][data-id="${objId}"][data-type="-1"]`);
+      if (upSpan) upSpan.textContent = data.upvotes;
+      if (downSpan) downSpan.textContent = data.downvotes;
+
+      // If on question detail page, update the specific ids
+      if (model === 'question') {
+        const upc = document.getElementById('upvote-count');
+        const downc = document.getElementById('downvote-count');
+        if (upc) upc.textContent = data.upvotes;
+        if (downc) downc.textContent = data.downvotes;
+      }
+
+      // If on answer detail page, update the answer specific ids
+      if (model === 'answer') {
+        const auc = document.getElementById('answer-upvote-count');
+        const adc = document.getElementById('answer-downvote-count');
+        if (auc) auc.textContent = data.upvotes;
+        if (adc) adc.textContent = data.downvotes;
+      }
+
+      // Visual toggling: highlight the selected button
+      const upBtn = document.querySelector('button[data-model="' + model + '"][data-id="' + objId + '"][data-type="1"]');
+      const downBtn = document.querySelector('button[data-model="' + model + '"][data-id="' + objId + '"][data-type="-1"]');
+
+      if (upBtn) upBtn.classList.remove('voted-up');
+      if (downBtn) downBtn.classList.remove('voted-down');
+
+      if (parseInt(data.current_vote) === 1) {
+        if (upBtn) upBtn.classList.add('voted-up');
+        if (downBtn) downBtn.classList.remove('voted-down');
+      } else if (parseInt(data.current_vote) === -1) {
+        if (downBtn) downBtn.classList.add('voted-down');
+        if (upBtn) upBtn.classList.remove('voted-up');
+      } else {
+        // no vote
+        if (upBtn) upBtn.classList.remove('voted-up');
+        if (downBtn) downBtn.classList.remove('voted-down');
+      }
+
+      // Add a subtle emphasis to the changed counts
+      if (upSpan) {
+        upSpan.classList.add('vote-count-updated');
+        setTimeout(() => upSpan.classList.remove('vote-count-updated'), 900);
+      }
+      if (downSpan) {
+        downSpan.classList.add('vote-count-updated');
+        setTimeout(() => downSpan.classList.remove('vote-count-updated'), 900);
+      }
+
+    })
+    .catch((err) => {
+      console.error('Vote request failed', err);
+    });
+});
+</script>
