@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import QuestionListView,QuestionCreateView,\
+from forum.views import QuestionListView,QuestionCreateView,\
     QuestionUpdateView,QuestionDeleteView,QuestionDetailView,\
     AnswerCreateView,AnswerUpdateView,AnswerDeleteView,AnswerDetailView,\
     CommentUpdateView,CommentDeleteView
