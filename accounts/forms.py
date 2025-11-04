@@ -10,3 +10,10 @@ class UserRegisterForm(UserCreationForm):
     class Meta(UserCreationForm.Meta): # type: ignore
         model = User
         fields = ('username', 'email')
+
+class UserEditForm(forms.ModelForm):
+    email = forms.EmailField(required=True, help_text='Required. Enter a valid email address.')
+
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'last_name', 'email']
