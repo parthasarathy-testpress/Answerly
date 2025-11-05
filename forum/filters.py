@@ -9,21 +9,16 @@ class QuestionFilter(django_filters.FilterSet):
         method='filter_question',
     )
 
-    tag = django_filters.ChoiceFilter(
+    tag = django_filters.ModelChoiceFilter(
+        queryset=Tag.objects.all().order_by('name'),
         method='filter_tag',
-        choices=[],
-        empty_label=None,
+        empty_label='All Tags',
+        required=False,
     )
 
     class Meta:
         model = Question
         fields = ['question', 'tag']
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        tags = Tag.objects.all().order_by('name')
-        choices = [('All', 'All Tags')] + [(t.name, t.name) for t in tags]
-        self.filters['tag'].field.choices = choices
 
     def filter_question(self, queryset, name, value):
         if value:
@@ -34,6 +29,6 @@ class QuestionFilter(django_filters.FilterSet):
         return queryset
 
     def filter_tag(self, queryset, name, value):
-        if not value or value == 'All':
+        if not value:
             return queryset
-        return queryset.filter(tags__name__iexact=value)
+        return queryset.filter(tags__in=[value])

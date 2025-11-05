@@ -5,6 +5,7 @@ from forum.models import Question,Vote,Answer,Comment
 from django.contrib.contenttypes.models import ContentType
 from forum.forms import CommentForm
 from django.utils import timezone
+from taggit.models import Tag
 
 User = get_user_model()
 
@@ -774,6 +775,10 @@ class QuestionListViewSearchFilterTests(TestCase):
         self.q1.tags.add("django")
         self.q2.tags.add("python")
         self.q3.tags.add("django", "python")
+
+        self.tag_django = Tag.objects.get(name="django")
+        self.tag_python = Tag.objects.get(name="python")
+
         self.url = reverse('question_list')
 
     def test_should_search_questions_by_title_or_description(self):
@@ -782,11 +787,11 @@ class QuestionListViewSearchFilterTests(TestCase):
         self.assertIn(self.q3, response.context['questions'])
         self.assertNotIn(self.q2, response.context['questions'])
 
-    def test_should_filter_questions_by_tag_name(self):
-        response = self.client.get(self.url, {"tag": "python"})
-        self.assertIn(self.q2, response.context['questions'])
-        self.assertIn(self.q3, response.context['questions'])
-        self.assertNotIn(self.q1, response.context['questions'])
+    def test_should_filter_questions_by_tag_id(self):
+        response = self.client.get(self.url, {"tag": self.tag_python.id})
+        self.assertIn(self.q2, response.context["questions"])
+        self.assertIn(self.q3, response.context["questions"])
+        self.assertNotIn(self.q1, response.context["questions"])
 
     def test_should_clear_search_and_filter_when_no_params(self):
         response = self.client.get(self.url)
