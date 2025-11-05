@@ -18,19 +18,9 @@ class QuestionListView(FilterView):
     filterset_class = QuestionFilter
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        queryset = queryset.annotate(
+        return Question.objects.annotate(
             total_votes=Sum('votes__vote_type', default=0)
         ).order_by('-created_at')
-        return queryset
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['tags'] = Tag.objects.all().order_by('name')
-        context['search_query'] = self.request.GET.get('question', '')
-        context['selected_tag'] = self.request.GET.get('tag', '')
-        return context
-
 
 
 class QuestionCreateView(LoginRequiredMixin, CreateView):
