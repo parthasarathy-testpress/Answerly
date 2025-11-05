@@ -8,8 +8,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from .mixins import AuthorRequiredMixin,QuestionDetailMixin
 from ..filters import QuestionFilter
 
-from taggit.models import Tag
-
 class QuestionListView(FilterView):
     model = Question
     template_name = 'forum/question_list.html'
