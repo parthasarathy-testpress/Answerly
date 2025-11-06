@@ -53,11 +53,8 @@ class VoteContextMixin:
 
         user = getattr(self.request, 'user', None)
         if user and getattr(user, 'is_authenticated', False):
-            try:
-                vote = obj.votes.filter(user=user).first()
-                context[f"{prefix}_user_vote"] = vote.vote_type if vote else 0
-            except Exception:
-                context[f"{prefix}_user_vote"] = 0
+            vote = obj.votes.filter(user=user).first()
+            context[f"{prefix}_user_vote"] = vote.vote_type if vote else 0
         else:
             context[f"{prefix}_user_vote"] = 0
 
@@ -81,7 +78,7 @@ class UserVoteMixin:
         
         obj_list = list(objects)
         content_type = ContentType.objects.get_for_model(model)
-        obj_ids = [getattr(object, 'id') for object in obj_list]
+        obj_ids = [getattr(obj, 'id') for obj in obj_list]
         votes_qs = Vote.objects.filter(user=user, content_type=content_type, object_id__in=obj_ids)
         user_votes = {vote.object_id: vote.vote_type for vote in votes_qs}
 
@@ -122,7 +119,7 @@ class QuestionDetailMixin(VoteContextMixin, PaginationMixin, UserVoteMixin):
         )
         context = self.get_paginated_context(answers_qs, "answers")
         user_votes = self.attach_user_votes(context['answers'], Answer)
-        context['answer_user_votes'] = user_votes if user_votes is not None else {}
+        context['answer_user_votes'] = user_votes
         return context
 
 

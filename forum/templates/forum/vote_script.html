@@ -119,69 +119,47 @@
       return document.body.dataset.authenticated === "true";
     }
     
-    function wireVoting(container=document) {
-      container.querySelectorAll('button[data-type][data-id]').forEach(btn => {
-        btn.addEventListener('click', async function (e) {
-          e.preventDefault();
-          e.stopPropagation();
+    function wireVoting(container = document) {
+      const voteHandler = async function (e) {
+        e.preventDefault();
+        e.stopPropagation();
 
-          if (!isUserAuthenticated()) {
-            showLoginPopup(btn);
-            return;
-          }
+        if (!isUserAuthenticated()) {
+          showLoginPopup(this);
+          return;
+        }
 
-          const objectId = btn.dataset.id;
-          const model = btn.dataset.model || btn.closest('[data-model]')?.dataset.model || btn.dataset.objectType || btn.closest('[data-object-type]')?.dataset.objectType || (document.body.dataset.currentModel);
-          const voteType = btn.dataset.type;
-          if (!model || !objectId) return console.warn('Missing model or id for vote');
-          try {
-            const data = await postVote(model, objectId, voteType);
-            updateCounts(btn, data);
-            highlightButton(btn, data.user_vote);
-          } catch (err) {
-            console.error(err);
-          }
-        });
-      });
+        const parent = this.closest('[data-model]');
+        const model = this.dataset.model || parent?.dataset.model;
+        const objectId = this.dataset.id || parent?.dataset.id;
+        const voteType = this.dataset.type;
 
-      container.querySelectorAll('#upvote-btn[data-type], #downvote-btn[data-type]').forEach(btn => {
-        btn.addEventListener('click', async function (e) {
-          e.preventDefault();
-          e.stopPropagation();
+        if (!model || !objectId) {
+          console.warn('Missing model or id for vote', this);
+          return;
+        }
 
-          if (!isUserAuthenticated()) {
-            showLoginPopup(btn);
-            return;
-          }
+        try {
+          const data = await postVote(model, objectId, voteType);
+          updateCounts(this, data);
+          highlightButton(this, data.user_vote);
+        } catch (err) {
+          console.error(err);
+        }
+      };
 
-          const parent = btn.closest('[data-model]') || document.body;
-          const model = parent.dataset.model || btn.dataset.model || document.body.dataset.currentModel;
-          const objectId = parent.dataset.id || btn.dataset.id || document.body.dataset.currentId;
-          const voteType = btn.dataset.type;
-          if (!model || !objectId) return console.warn('Missing model or id for vote');
-          try {
-            const data = await postVote(model, objectId, voteType);
-            updateCounts(btn, data);
-            highlightButton(btn, data.user_vote);
-          } catch (err) {
-            console.error(err);
-          }
-        });
+      container.querySelectorAll('button[data-type]').forEach(btn => {
+        if (btn.dataset.voteWired) return;
+        btn.addEventListener('click', voteHandler);
+        btn.dataset.voteWired = 'true';
       });
     }
     
     document.addEventListener('DOMContentLoaded', function () {
       wireVoting(document);
-      const q = document.querySelector('[data-model="question"][data-id]');
-      if (q) {
-        const vote = parseInt(q.dataset.userVote || q.dataset.user_vote || 0, 10);
-        if (!isNaN(vote)) {
-          highlightButton(q, vote);
-        }
-      }
-      document.querySelectorAll('[data-model="answer"][data-id], [data-model="comment"][data-id]').forEach(el => {
-        const vote = parseInt(el.dataset.userVote || el.dataset.user_vote || 0, 10);
-        if (!isNaN(vote)) {
+      document.querySelectorAll('[data-model][data-user-vote]').forEach(el => {
+        const vote = parseInt(el.dataset.userVote, 10);
+        if (!isNaN(vote) && vote !== 0) {
           highlightButton(el, vote);
         }
       });

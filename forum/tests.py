@@ -822,14 +822,14 @@ class VoteViewTests(TestCase):
         )
 
     def test_vote_requires_login(self):
-        for url_name in ['question_vote', 'answer_vote', 'comment_vote']:
-            param = {
-                'question_vote': 'question_id',
-                'answer_vote': 'answer_id',
-                'comment_vote': 'comment_id'
-            }[url_name]
+        test_cases = {
+            'question_vote': ('question_id', self.question.id),
+            'answer_vote': ('answer_id', self.answer.id),
+            'comment_vote': ('comment_id', self.comment.id),
+        }
+        for url_name, (param, obj_id) in test_cases.items():
             response = self.client.post(
-                reverse(url_name, kwargs={param: self.question.id}),
+                reverse(url_name, kwargs={param: obj_id}),
                 {'vote_type': 1}
             )
             self.assertEqual(response.status_code, 302)
