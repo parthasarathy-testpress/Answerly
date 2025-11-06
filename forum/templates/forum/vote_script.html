@@ -1,0 +1,189 @@
+<script>
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    
+    async function postVote(objectType, objectId, voteType) {
+      const csrftoken = getCookie('csrftoken');
+      const form = new URLSearchParams();
+      form.append('vote_type', voteType);
+      
+      const urlMap = {
+        'question': '/question/',
+        'answer': '/answer/',
+        'comment': '/comment/'
+      };
+      const baseUrl = urlMap[objectType];
+      if (!baseUrl) throw new Error('Invalid object type');
+      
+      const resp = await fetch(`${baseUrl}${objectId}/vote/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrftoken,
+        },
+        body: form,
+      });
+      if (!resp.ok) throw new Error('Vote request failed');
+      return await resp.json();
+    }
+    
+    function highlightButton(btn, userVote) {
+      const isButton = btn && btn.tagName && btn.tagName.toLowerCase() === 'button';
+      let container;
+      if (isButton) {
+        container = btn.closest('[data-model]') || btn.closest('.d-flex') || document;
+      } else if (btn && btn.querySelector) {
+        container = btn;
+      } else {
+        container = document;
+      }
+    
+      const up = container.querySelector('[data-type="1"][data-id]') || container.querySelector('[data-type="1"]');
+      const down = container.querySelector('[data-type="-1"][data-id]') || container.querySelector('[data-type="-1"]');
+      if (userVote === 1) {
+        if (up) {
+          up.classList.remove('btn-outline-success');
+          up.classList.add('btn-success');
+        }
+        if (down) {
+          down.classList.remove('btn-danger');
+          if (!down.classList.contains('btn-outline-danger')) down.classList.add('btn-outline-danger');
+        }
+      } else if (userVote === -1) {
+        if (down) {
+          down.classList.remove('btn-outline-danger');
+          down.classList.add('btn-danger');
+        }
+        if (up) {
+          up.classList.remove('btn-success');
+          up.classList.add('btn-outline-success');
+        }
+      } else {
+        if (up) {
+          up.classList.remove('btn-success');
+          if (!up.classList.contains('btn-outline-success')) up.classList.add('btn-outline-success');
+        }
+        if (down) {
+          down.classList.remove('btn-danger');
+          if (!down.classList.contains('btn-outline-danger')) down.classList.add('btn-outline-danger');
+        }
+      }
+    }
+    
+    function updateCounts(btn, data) {
+      const container = btn.closest('.d-flex') || btn.parentElement;
+      if (!container) return;
+      const upBtn = container.querySelector('[data-type="1"]');
+      const downBtn = container.querySelector('[data-type="-1"]');
+      if (upBtn) {
+        upBtn.innerHTML = `<i class="bi bi-hand-thumbs-up"></i> (${data.upvotes})`;
+      }
+      if (downBtn) {
+        downBtn.innerHTML = `<i class="bi bi-hand-thumbs-down"></i> (${data.downvotes})`;
+      }
+    }
+
+    function showLoginPopup(btn) {
+      const popup = document.createElement('div');
+      popup.textContent = 'Please log in to vote';
+      popup.style.position = 'absolute';
+      popup.style.background = '#ffc107';
+      popup.style.color = '#000';
+      popup.style.padding = '6px 10px';
+      popup.style.borderRadius = '4px';
+      popup.style.fontSize = '0.85rem';
+      popup.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+      popup.style.transition = 'opacity 0.3s ease';
+      popup.style.opacity = '1';
+      popup.style.zIndex = '9999';
+      const rect = btn.getBoundingClientRect();
+      popup.style.top = `${rect.top + window.scrollY - 35}px`;
+      popup.style.left = `${rect.left + window.scrollX + rect.width / 2 - 60}px`;
+      document.body.appendChild(popup);
+      setTimeout(() => { popup.style.opacity = '0'; }, 1500);
+      setTimeout(() => { popup.remove(); }, 2000);
+    }
+
+    function isUserAuthenticated() {
+      return document.body.dataset.authenticated === "true";
+    }
+    
+    function wireVoting(container=document) {
+      container.querySelectorAll('button[data-type][data-id]').forEach(btn => {
+        btn.addEventListener('click', async function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          if (!isUserAuthenticated()) {
+            showLoginPopup(btn);
+            return;
+          }
+
+          const objectId = btn.dataset.id;
+          const model = btn.dataset.model || btn.closest('[data-model]')?.dataset.model || btn.dataset.objectType || btn.closest('[data-object-type]')?.dataset.objectType || (document.body.dataset.currentModel);
+          const voteType = btn.dataset.type;
+          if (!model || !objectId) return console.warn('Missing model or id for vote');
+          try {
+            const data = await postVote(model, objectId, voteType);
+            updateCounts(btn, data);
+            highlightButton(btn, data.user_vote);
+          } catch (err) {
+            console.error(err);
+          }
+        });
+      });
+
+      container.querySelectorAll('#upvote-btn[data-type], #downvote-btn[data-type]').forEach(btn => {
+        btn.addEventListener('click', async function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          if (!isUserAuthenticated()) {
+            showLoginPopup(btn);
+            return;
+          }
+
+          const parent = btn.closest('[data-model]') || document.body;
+          const model = parent.dataset.model || btn.dataset.model || document.body.dataset.currentModel;
+          const objectId = parent.dataset.id || btn.dataset.id || document.body.dataset.currentId;
+          const voteType = btn.dataset.type;
+          if (!model || !objectId) return console.warn('Missing model or id for vote');
+          try {
+            const data = await postVote(model, objectId, voteType);
+            updateCounts(btn, data);
+            highlightButton(btn, data.user_vote);
+          } catch (err) {
+            console.error(err);
+          }
+        });
+      });
+    }
+    
+    document.addEventListener('DOMContentLoaded', function () {
+      wireVoting(document);
+      const q = document.querySelector('[data-model="question"][data-id]');
+      if (q) {
+        const vote = parseInt(q.dataset.userVote || q.dataset.user_vote || 0, 10);
+        if (!isNaN(vote)) {
+          highlightButton(q, vote);
+        }
+      }
+      document.querySelectorAll('[data-model="answer"][data-id], [data-model="comment"][data-id]').forEach(el => {
+        const vote = parseInt(el.dataset.userVote || el.dataset.user_vote || 0, 10);
+        if (!isNaN(vote)) {
+          highlightButton(el, vote);
+        }
+      });
+    });
+</script>
