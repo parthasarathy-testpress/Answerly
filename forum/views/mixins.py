@@ -4,6 +4,7 @@ from django.core.paginator import Paginator
 from django.db.models import Count, Q
 from django.contrib.contenttypes.models import ContentType
 from ..models import Answer, Comment
+from ..models import Vote
 
 class AuthorRequiredMixin(UserPassesTestMixin):
     def test_func(self):
@@ -45,10 +46,47 @@ class AnswerMetaMixin:
 class VoteContextMixin:
     def get_single_object_vote_context(self, obj, prefix):
         vote_counts = obj.get_vote_counts()
-        return {
+        context = {
             f"{prefix}_upvotes": vote_counts["upvotes"],
             f"{prefix}_downvotes": vote_counts["downvotes"],
         }
+
+        user = getattr(self.request, 'user', None)
+        if user and getattr(user, 'is_authenticated', False):
+            vote = obj.votes.filter(user=user).first()
+            context[f"{prefix}_user_vote"] = vote.vote_type if vote else 0
+        else:
+            context[f"{prefix}_user_vote"] = 0
+
+        return context
+
+
+class UserVoteMixin:
+    def get_user_from_request(self):
+        user = getattr(self.request, 'user', None)
+        if user and getattr(user, 'is_authenticated', False):
+            return user
+        return None
+
+    def attach_user_votes(self, objects, model):
+        user = getattr(self.request, 'user', None)
+        
+        if not user or not getattr(user, 'is_authenticated', False):
+            for obj in objects:
+                setattr(obj, 'user_vote', 0)
+            return {}
+        
+        obj_list = list(objects)
+        content_type = ContentType.objects.get_for_model(model)
+        obj_ids = [getattr(obj, 'id') for obj in obj_list]
+        votes_qs = Vote.objects.filter(user=user, content_type=content_type, object_id__in=obj_ids)
+        user_votes = {vote.object_id: vote.vote_type for vote in votes_qs}
+
+        for obj in obj_list:
+            setattr(obj, 'user_vote', user_votes.get(getattr(obj, 'id'), 0))
+
+        return user_votes
+
 
 class PaginationMixin:
     paginate_by = None
@@ -65,7 +103,7 @@ class PaginationMixin:
         }
 
 
-class QuestionDetailMixin(VoteContextMixin, PaginationMixin):
+class QuestionDetailMixin(VoteContextMixin, PaginationMixin, UserVoteMixin):
     paginate_by = 3
 
     def get_question_vote_context(self, question):
@@ -79,10 +117,13 @@ class QuestionDetailMixin(VoteContextMixin, PaginationMixin):
             )
             .order_by('-created_at')
         )
-        return self.get_paginated_context(answers_qs, "answers")
+        context = self.get_paginated_context(answers_qs, "answers")
+        user_votes = self.attach_user_votes(context['answers'], Answer)
+        context['answer_user_votes'] = user_votes
+        return context
 
 
-class AnswerDetailMixin(VoteContextMixin, PaginationMixin):
+class AnswerDetailMixin(VoteContextMixin, PaginationMixin, UserVoteMixin):
     paginate_by = 3
 
     def get_answer_vote_context(self, answer):
@@ -106,6 +147,7 @@ class AnswerDetailMixin(VoteContextMixin, PaginationMixin):
             )
             .order_by("-created_at")
         )
+        self.attach_user_votes(comments, Comment)
 
         for comment in comments:
             comment.replies_cached = list(self.get_vote_annotated_replies(comment))
@@ -121,6 +163,9 @@ class AnswerDetailMixin(VoteContextMixin, PaginationMixin):
             )
             .order_by("-created_at")
         )
+
+        self.attach_user_votes(replies, Comment)
+
         for reply in replies:
             reply.replies_cached = list(self.get_vote_annotated_replies(reply))
         return replies

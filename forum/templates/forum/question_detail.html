@@ -8,7 +8,7 @@
 <div class="container-fluid py-5">
   <div class="row justify-content-center">
     <div class="col-12 col-md-11 col-lg-11">
-      <div class="card shadow border-0 rounded-3 p-4 mb-4">
+      <div class="card shadow border-0 rounded-3 p-4 mb-4" data-model="question" data-id="{{ question.id }}" data-user-vote="{{ question_user_vote|default:0 }}">
         <div class="card-body">
           <h2 class="fw-bold mb-3" style="color: #c75a00ff;">{{ question.title }}</h2>
 
@@ -35,13 +35,13 @@
             <button id="upvote-btn"
                     class="btn btn-outline-success btn-sm"
                     data-type="1">
-              <i class="bi bi-hand-thumbs-up"></i> (<span id="upvote-count">{{ question_upvotes }}</span>)
+              <i class="bi bi-hand-thumbs-up"></i> ({{ question_upvotes }})
             </button>
 
             <button id="downvote-btn"
                     class="btn btn-outline-danger btn-sm"
                     data-type="-1">
-              <i class="bi bi-hand-thumbs-down"></i> (<span id="downvote-count">{{ question_downvotes }}</span>)
+              <i class="bi bi-hand-thumbs-down"></i> ({{ question_downvotes }})
             </button>
           </div>
           <a href="{% url 'answer_post' question.pk %}" class="btn btn-success position-absolute bottom-0 end-0 m-3">

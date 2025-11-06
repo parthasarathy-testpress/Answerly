@@ -1,0 +1,133 @@
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  // Register Alpine global store for vote system
+  Alpine.store('voteSystem', {
+    getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
+    },
+
+    async postVote(objectType, objectId, voteType) {
+      const csrftoken = this.getCookie('csrftoken');
+      const form = new URLSearchParams({ vote_type: voteType });
+      const urlMap = { question: '/question/', answer: '/answer/', comment: '/comment/' };
+      const baseUrl = urlMap[objectType];
+      if (!baseUrl) throw new Error('Invalid object type');
+
+      const resp = await fetch(`${baseUrl}${objectId}/vote/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrftoken },
+        body: form,
+      });
+      if (!resp.ok) throw new Error('Vote request failed');
+      return await resp.json();
+    },
+
+    highlightButton(btn, userVote) {
+      let container = btn.closest('[data-model]') || btn.closest('.d-flex') || document;
+      const up = container.querySelector('[data-type="1"]');
+      const down = container.querySelector('[data-type="-1"]');
+
+      if (userVote === 1) {
+        up?.classList.remove('btn-outline-success');
+        up?.classList.add('btn-success');
+        down?.classList.remove('btn-danger');
+        if (!down?.classList.contains('btn-outline-danger')) down?.classList.add('btn-outline-danger');
+      } else if (userVote === -1) {
+        down?.classList.remove('btn-outline-danger');
+        down?.classList.add('btn-danger');
+        up?.classList.remove('btn-success');
+        up?.classList.add('btn-outline-success');
+      } else {
+        up?.classList.remove('btn-success');
+        if (!up?.classList.contains('btn-outline-success')) up?.classList.add('btn-outline-success');
+        down?.classList.remove('btn-danger');
+        if (!down?.classList.contains('btn-outline-danger')) down?.classList.add('btn-outline-danger');
+      }
+    },
+
+    updateCounts(btn, data) {
+      const container = btn.closest('.d-flex') || btn.parentElement;
+      if (!container) return;
+      const upBtn = container.querySelector('[data-type="1"]');
+      const downBtn = container.querySelector('[data-type="-1"]');
+      if (upBtn) upBtn.innerHTML = `<i class="bi bi-hand-thumbs-up"></i> (${data.upvotes})`;
+      if (downBtn) downBtn.innerHTML = `<i class="bi bi-hand-thumbs-down"></i> (${data.downvotes})`;
+    },
+
+    showLoginPopup(btn) {
+      const popup = Object.assign(document.createElement('div'), {
+        textContent: 'Please Login to vote',
+        style: `
+          position:absolute;background:#ffc107;color:#000;padding:4px 8px;
+          border-radius:4px;font-size:0.8rem;box-shadow:0 2px 6px rgba(0,0,0,0.2);
+          z-index:9999;
+        `
+      });
+      const r = btn.getBoundingClientRect();
+      popup.style.top = `${r.top + window.scrollY - 30}px`;
+      popup.style.left = `${r.left + window.scrollX + r.width/2 - 50}px`;
+      document.body.appendChild(popup);
+      setTimeout(() => popup.remove(), 1200);
+    },
+
+    isUserAuthenticated() {
+      return document.body.dataset.authenticated === "true";
+    },
+
+    async handleVote(btn) {
+      const parent = btn.closest('[data-model]');
+      const model = btn.dataset.model || parent?.dataset.model;
+      const objectId = btn.dataset.id || parent?.dataset.id;
+      const voteType = btn.dataset.type;
+
+      if (!this.isUserAuthenticated()) {
+        this.showLoginPopup(btn);
+        return;
+      }
+
+      if (!model || !objectId) {
+        console.warn('Missing model or id for vote', btn);
+        return;
+      }
+
+      try {
+        const data = await this.postVote(model, objectId, voteType);
+        this.updateCounts(btn, data);
+        this.highlightButton(btn, data.user_vote);
+      } catch (err) {
+        console.error(err);
+      }
+    },
+
+    wireVoting(container = document) {
+      container.querySelectorAll('button[data-type]').forEach(btn => {
+        if (btn.dataset.voteWired) return;
+        btn.addEventListener('click', e => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.handleVote(btn);
+        });
+        btn.dataset.voteWired = 'true';
+      });
+    },
+
+    init() {
+      this.wireVoting(document);
+      document.querySelectorAll('[data-model][data-user-vote]').forEach(el => {
+        const vote = parseInt(el.dataset.userVote, 10);
+        if (!isNaN(vote) && vote !== 0) this.highlightButton(el, vote);
+      });
+    }
+  });
+});
+
+// ✅ When Alpine is ready, initialize the system
+document.addEventListener('alpine:initialized', () => {
+  Alpine.store('voteSystem').init();
+});
+
+</script>

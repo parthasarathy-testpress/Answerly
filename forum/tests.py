@@ -6,6 +6,7 @@ from django.contrib.contenttypes.models import ContentType
 from forum.forms import CommentForm
 from django.utils import timezone
 from taggit.models import Tag
+import json
 
 User = get_user_model()
 
@@ -796,3 +797,124 @@ class QuestionListViewSearchFilterTests(TestCase):
     def test_should_clear_search_and_filter_when_no_params(self):
         response = self.client.get(self.url)
         self.assertCountEqual(response.context['questions'], [self.q1, self.q2, self.q3])
+
+class VoteViewTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username='testuser', email='test@example.com', password='12345')
+        self.other_user = User.objects.create_user(username='otheruser', email='test1@example.com', password='12345')
+        
+        self.question = Question.objects.create(
+            title="Test Question",
+            description="Test Description",
+            author=self.user
+        )
+        self.answer = Answer.objects.create(
+            question=self.question,
+            content="Test Answer",
+            author=self.user
+        )
+        self.comment = Comment.objects.create(
+            content="Test Comment",
+            author=self.user,
+            content_type=ContentType.objects.get_for_model(Answer),
+            object_id=self.answer.id
+        )
+
+    def test_vote_requires_login(self):
+        test_cases = {
+            'question_vote': ('question_id', self.question.id),
+            'answer_vote': ('answer_id', self.answer.id),
+            'comment_vote': ('comment_id', self.comment.id),
+        }
+        for url_name, (param, obj_id) in test_cases.items():
+            response = self.client.post(
+                reverse(url_name, kwargs={param: obj_id}),
+                {'vote_type': 1}
+            )
+            self.assertEqual(response.status_code, 302)
+            self.assertTrue(response.url.startswith('/accounts/login/'))
+
+    def test_invalid_vote_type(self):
+        self.client.login(username='testuser', password='12345')
+        response = self.client.post(
+            reverse('question_vote', kwargs={'question_id': self.question.id}),
+            {'vote_type': 2}
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_vote_create_and_toggle(self):
+        self.client.login(username='testuser', password='12345')
+        
+        response = self.client.post(
+            reverse('question_vote', kwargs={'question_id': self.question.id}),
+            {'vote_type': 1}
+        )
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(data['upvotes'], 1)
+        self.assertEqual(data['downvotes'], 0)
+        self.assertEqual(data['user_vote'], 1)
+
+        response = self.client.post(
+            reverse('question_vote', kwargs={'question_id': self.question.id}),
+            {'vote_type': 1}
+        )
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(data['upvotes'], 0)
+        self.assertEqual(data['user_vote'], 0)
+
+    def test_vote_switch(self):
+        self.client.login(username='testuser', password='12345')
+        Vote.objects.create(user=self.user, content_object=self.question, vote_type=1)
+
+        response = self.client.post(
+            reverse('question_vote', kwargs={'question_id': self.question.id}),
+            {'vote_type': -1}
+        )
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(data['upvotes'], 0)
+        self.assertEqual(data['downvotes'], 1)
+        self.assertEqual(data['user_vote'], -1)
+
+    def test_vote_on_answer(self):
+        self.client.login(username='testuser', password='12345')
+        response = self.client.post(
+            reverse('answer_vote', kwargs={'answer_id': self.answer.id}),
+            {'vote_type': 1}
+        )
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(data['upvotes'], 1)
+        self.assertEqual(Vote.objects.filter(content_type=ContentType.objects.get_for_model(Answer)).count(), 1)
+
+    def test_vote_on_comment(self):
+        self.client.login(username='testuser', password='12345')
+        response = self.client.post(
+            reverse('comment_vote', kwargs={'comment_id': self.comment.id}),
+            {'vote_type': 1}
+        )
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(data['upvotes'], 1)
+        self.assertEqual(Vote.objects.filter(content_type=ContentType.objects.get_for_model(Comment)).count(), 1)
+
+    def test_multiple_users_voting(self):
+        self.client.login(username='testuser', password='12345')
+        self.client.post(
+            reverse('question_vote', kwargs={'question_id': self.question.id}),
+            {'vote_type': 1}
+        )
+        
+        self.client.login(username='otheruser', password='12345')
+        response = self.client.post(
+            reverse('question_vote', kwargs={'question_id': self.question.id}),
+            {'vote_type': -1}
+        )
+        
+        data = json.loads(response.content)
+        self.assertEqual(data['upvotes'], 1)
+        self.assertEqual(data['downvotes'], 1)
+        self.assertEqual(data['user_vote'], -1)
