@@ -6,7 +6,6 @@ from ..models import Question, Answer, Comment, Vote
 
 
 class VoteViewMixin(LoginRequiredMixin):
-    model = None
 
     def post(self, request, *args, **kwargs):
         raw_vote_value = self.get_vote_type_from_request(request)
@@ -16,14 +15,19 @@ class VoteViewMixin(LoginRequiredMixin):
             return result
         vote_type = result
 
-        param_name = {
-            Question: 'question_id',
-            Answer: 'answer_id',
-            Comment: 'comment_id'
-        }[self.model]
-        
-        obj = get_object_or_404(self.model, pk=kwargs[param_name])
-        existing = obj.votes.filter(user=request.user).first()
+        obj = self.get_object(request, **kwargs)
+
+        user_vote = self.apply_vote(obj, vote_type, request.user)
+
+        counts = obj.get_vote_counts()
+        return JsonResponse({
+            'upvotes': counts['upvotes'],
+            'downvotes': counts['downvotes'],
+            'user_vote': user_vote,
+        })
+
+    def apply_vote(self, obj, vote_type, user):
+        existing = obj.votes.filter(user=user).first()
 
         if existing:
             if existing.vote_type == vote_type:
@@ -34,15 +38,10 @@ class VoteViewMixin(LoginRequiredMixin):
                 existing.save()
                 user_vote = vote_type
         else:
-            obj.votes.create(user=request.user, vote_type=vote_type)
+            obj.votes.create(user=user, vote_type=vote_type)
             user_vote = vote_type
 
-        counts = obj.get_vote_counts()
-        return JsonResponse({
-            'upvotes': counts['upvotes'],
-            'downvotes': counts['downvotes'],
-            'user_vote': user_vote,
-        })
+        return user_vote
 
     def validate_vote_type(self, raw_value):
         try:
@@ -68,10 +67,19 @@ class VoteViewMixin(LoginRequiredMixin):
 class QuestionVoteView(VoteViewMixin, View):
     model = Question
 
+    def get_object(self, request, **kwargs):
+        return get_object_or_404(Question, pk=kwargs['question_id'])
+
 
 class AnswerVoteView(VoteViewMixin, View):
     model = Answer
 
+    def get_object(self, request, **kwargs):
+        return get_object_or_404(Answer, pk=kwargs['answer_id'])
+
 
 class CommentVoteView(VoteViewMixin, View):
     model = Comment
+
+    def get_object(self, request, **kwargs):
+        return get_object_or_404(Comment, pk=kwargs['comment_id'])

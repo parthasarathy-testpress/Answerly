@@ -1,167 +1,133 @@
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
 <script>
-    function getCookie(name) {
-      let cookieValue = null;
-      if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-          const cookie = cookies[i].trim();
-          if (cookie.substring(0, name.length + 1) === (name + '=')) {
-            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-            break;
-          }
-        }
-      }
-      return cookieValue;
-    }
-    
-    async function postVote(objectType, objectId, voteType) {
-      const csrftoken = getCookie('csrftoken');
-      const form = new URLSearchParams();
-      form.append('vote_type', voteType);
-      
-      const urlMap = {
-        'question': '/question/',
-        'answer': '/answer/',
-        'comment': '/comment/'
-      };
+document.addEventListener('alpine:init', () => {
+  // Register Alpine global store for vote system
+  Alpine.store('voteSystem', {
+    getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
+    },
+
+    async postVote(objectType, objectId, voteType) {
+      const csrftoken = this.getCookie('csrftoken');
+      const form = new URLSearchParams({ vote_type: voteType });
+      const urlMap = { question: '/question/', answer: '/answer/', comment: '/comment/' };
       const baseUrl = urlMap[objectType];
       if (!baseUrl) throw new Error('Invalid object type');
-      
+
       const resp = await fetch(`${baseUrl}${objectId}/vote/`, {
         method: 'POST',
-        headers: {
-          'X-CSRFToken': csrftoken,
-        },
+        headers: { 'X-CSRFToken': csrftoken },
         body: form,
       });
       if (!resp.ok) throw new Error('Vote request failed');
       return await resp.json();
-    }
-    
-    function highlightButton(btn, userVote) {
-      const isButton = btn && btn.tagName && btn.tagName.toLowerCase() === 'button';
-      let container;
-      if (isButton) {
-        container = btn.closest('[data-model]') || btn.closest('.d-flex') || document;
-      } else if (btn && btn.querySelector) {
-        container = btn;
-      } else {
-        container = document;
-      }
-    
-      const up = container.querySelector('[data-type="1"][data-id]') || container.querySelector('[data-type="1"]');
-      const down = container.querySelector('[data-type="-1"][data-id]') || container.querySelector('[data-type="-1"]');
+    },
+
+    highlightButton(btn, userVote) {
+      let container = btn.closest('[data-model]') || btn.closest('.d-flex') || document;
+      const up = container.querySelector('[data-type="1"]');
+      const down = container.querySelector('[data-type="-1"]');
+
       if (userVote === 1) {
-        if (up) {
-          up.classList.remove('btn-outline-success');
-          up.classList.add('btn-success');
-        }
-        if (down) {
-          down.classList.remove('btn-danger');
-          if (!down.classList.contains('btn-outline-danger')) down.classList.add('btn-outline-danger');
-        }
+        up?.classList.remove('btn-outline-success');
+        up?.classList.add('btn-success');
+        down?.classList.remove('btn-danger');
+        if (!down?.classList.contains('btn-outline-danger')) down?.classList.add('btn-outline-danger');
       } else if (userVote === -1) {
-        if (down) {
-          down.classList.remove('btn-outline-danger');
-          down.classList.add('btn-danger');
-        }
-        if (up) {
-          up.classList.remove('btn-success');
-          up.classList.add('btn-outline-success');
-        }
+        down?.classList.remove('btn-outline-danger');
+        down?.classList.add('btn-danger');
+        up?.classList.remove('btn-success');
+        up?.classList.add('btn-outline-success');
       } else {
-        if (up) {
-          up.classList.remove('btn-success');
-          if (!up.classList.contains('btn-outline-success')) up.classList.add('btn-outline-success');
-        }
-        if (down) {
-          down.classList.remove('btn-danger');
-          if (!down.classList.contains('btn-outline-danger')) down.classList.add('btn-outline-danger');
-        }
+        up?.classList.remove('btn-success');
+        if (!up?.classList.contains('btn-outline-success')) up?.classList.add('btn-outline-success');
+        down?.classList.remove('btn-danger');
+        if (!down?.classList.contains('btn-outline-danger')) down?.classList.add('btn-outline-danger');
       }
-    }
-    
-    function updateCounts(btn, data) {
+    },
+
+    updateCounts(btn, data) {
       const container = btn.closest('.d-flex') || btn.parentElement;
       if (!container) return;
       const upBtn = container.querySelector('[data-type="1"]');
       const downBtn = container.querySelector('[data-type="-1"]');
-      if (upBtn) {
-        upBtn.innerHTML = `<i class="bi bi-hand-thumbs-up"></i> (${data.upvotes})`;
-      }
-      if (downBtn) {
-        downBtn.innerHTML = `<i class="bi bi-hand-thumbs-down"></i> (${data.downvotes})`;
-      }
-    }
+      if (upBtn) upBtn.innerHTML = `<i class="bi bi-hand-thumbs-up"></i> (${data.upvotes})`;
+      if (downBtn) downBtn.innerHTML = `<i class="bi bi-hand-thumbs-down"></i> (${data.downvotes})`;
+    },
 
-    function showLoginPopup(btn) {
-      const popup = document.createElement('div');
-      popup.textContent = 'Please log in to vote';
-      popup.style.position = 'absolute';
-      popup.style.background = '#ffc107';
-      popup.style.color = '#000';
-      popup.style.padding = '6px 10px';
-      popup.style.borderRadius = '4px';
-      popup.style.fontSize = '0.85rem';
-      popup.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
-      popup.style.transition = 'opacity 0.3s ease';
-      popup.style.opacity = '1';
-      popup.style.zIndex = '9999';
-      const rect = btn.getBoundingClientRect();
-      popup.style.top = `${rect.top + window.scrollY - 35}px`;
-      popup.style.left = `${rect.left + window.scrollX + rect.width / 2 - 60}px`;
+    showLoginPopup(btn) {
+      const popup = Object.assign(document.createElement('div'), {
+        textContent: 'Please Login to vote',
+        style: `
+          position:absolute;background:#ffc107;color:#000;padding:4px 8px;
+          border-radius:4px;font-size:0.8rem;box-shadow:0 2px 6px rgba(0,0,0,0.2);
+          z-index:9999;
+        `
+      });
+      const r = btn.getBoundingClientRect();
+      popup.style.top = `${r.top + window.scrollY - 30}px`;
+      popup.style.left = `${r.left + window.scrollX + r.width/2 - 50}px`;
       document.body.appendChild(popup);
-      setTimeout(() => { popup.style.opacity = '0'; }, 1500);
-      setTimeout(() => { popup.remove(); }, 2000);
-    }
+      setTimeout(() => popup.remove(), 1200);
+    },
 
-    function isUserAuthenticated() {
+    isUserAuthenticated() {
       return document.body.dataset.authenticated === "true";
-    }
-    
-    function wireVoting(container = document) {
-      const voteHandler = async function (e) {
-        e.preventDefault();
-        e.stopPropagation();
+    },
 
-        if (!isUserAuthenticated()) {
-          showLoginPopup(this);
-          return;
-        }
+    async handleVote(btn) {
+      const parent = btn.closest('[data-model]');
+      const model = btn.dataset.model || parent?.dataset.model;
+      const objectId = btn.dataset.id || parent?.dataset.id;
+      const voteType = btn.dataset.type;
 
-        const parent = this.closest('[data-model]');
-        const model = this.dataset.model || parent?.dataset.model;
-        const objectId = this.dataset.id || parent?.dataset.id;
-        const voteType = this.dataset.type;
+      if (!this.isUserAuthenticated()) {
+        this.showLoginPopup(btn);
+        return;
+      }
 
-        if (!model || !objectId) {
-          console.warn('Missing model or id for vote', this);
-          return;
-        }
+      if (!model || !objectId) {
+        console.warn('Missing model or id for vote', btn);
+        return;
+      }
 
-        try {
-          const data = await postVote(model, objectId, voteType);
-          updateCounts(this, data);
-          highlightButton(this, data.user_vote);
-        } catch (err) {
-          console.error(err);
-        }
-      };
+      try {
+        const data = await this.postVote(model, objectId, voteType);
+        this.updateCounts(btn, data);
+        this.highlightButton(btn, data.user_vote);
+      } catch (err) {
+        console.error(err);
+      }
+    },
 
+    wireVoting(container = document) {
       container.querySelectorAll('button[data-type]').forEach(btn => {
         if (btn.dataset.voteWired) return;
-        btn.addEventListener('click', voteHandler);
+        btn.addEventListener('click', e => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.handleVote(btn);
+        });
         btn.dataset.voteWired = 'true';
       });
-    }
-    
-    document.addEventListener('DOMContentLoaded', function () {
-      wireVoting(document);
+    },
+
+    init() {
+      this.wireVoting(document);
       document.querySelectorAll('[data-model][data-user-vote]').forEach(el => {
         const vote = parseInt(el.dataset.userVote, 10);
-        if (!isNaN(vote) && vote !== 0) {
-          highlightButton(el, vote);
-        }
+        if (!isNaN(vote) && vote !== 0) this.highlightButton(el, vote);
       });
-    });
+    }
+  });
+});
+
+// ✅ When Alpine is ready, initialize the system
+document.addEventListener('alpine:initialized', () => {
+  Alpine.store('voteSystem').init();
+});
+
 </script>
