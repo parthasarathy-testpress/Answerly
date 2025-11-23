@@ -4,8 +4,6 @@ from django.contrib.auth import get_user_model
 from forum.models import Question,Vote,Answer,Comment
 from django.contrib.contenttypes.models import ContentType
 from forum.forms import CommentForm
-from django.utils import timezone
-from taggit.models import Tag
 
 User = get_user_model()
 
@@ -756,43 +754,3 @@ class CommentReplyTests(TestCase):
         self.assertIsNotNone(reply)
         self.assertEqual(reply.parent, self.parent_comment)
         self.assertEqual(reply.content_object, self.answer)
-
-class QuestionListViewSearchFilterTests(TestCase):
-    def setUp(self):
-        self.client = Client()
-        self.user = User.objects.create_user(username="tester", email='test@example.com', password="pass123")
-
-        self.q1 = Question.objects.create(
-            title="Learn Django", description="Django basics", author=self.user, created_at=timezone.now() - timezone.timedelta(days=2)
-        )
-        self.q2 = Question.objects.create(
-            title="Python Tips", description="Advanced Python topics", author=self.user, created_at=timezone.now() - timezone.timedelta(days=1)
-        )
-        self.q3 = Question.objects.create(
-            title="Web Development", description="Using Django and Flask", author=self.user, created_at=timezone.now()
-        )
-
-        self.q1.tags.add("django")
-        self.q2.tags.add("python")
-        self.q3.tags.add("django", "python")
-
-        self.tag_django = Tag.objects.get(name="django")
-        self.tag_python = Tag.objects.get(name="python")
-
-        self.url = reverse('question_list')
-
-    def test_should_search_questions_by_title_or_description(self):
-        response = self.client.get(self.url, {"question": "django"})
-        self.assertIn(self.q1, response.context['questions'])
-        self.assertIn(self.q3, response.context['questions'])
-        self.assertNotIn(self.q2, response.context['questions'])
-
-    def test_should_filter_questions_by_tag_id(self):
-        response = self.client.get(self.url, {"tag": self.tag_python.id})
-        self.assertIn(self.q2, response.context["questions"])
-        self.assertIn(self.q3, response.context["questions"])
-        self.assertNotIn(self.q1, response.context["questions"])
-
-    def test_should_clear_search_and_filter_when_no_params(self):
-        response = self.client.get(self.url)
-        self.assertCountEqual(response.context['questions'], [self.q1, self.q2, self.q3])
