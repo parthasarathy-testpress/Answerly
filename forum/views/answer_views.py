@@ -53,7 +53,6 @@ class AnswerDetailView(AnswerDetailMixin, DetailView):
         context = super().get_context_data(**kwargs)
         answer = self.object
         context.update(self.get_answer_vote_context(answer))
-        context.update(self.get_paginated_comments_context(answer))
         context["question"] = answer.question
         context["comment_form"] = kwargs.get("comment_form", CommentForm())
         return context
