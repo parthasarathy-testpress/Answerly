@@ -11,6 +11,7 @@ from forum.views.answer_views import (
     AnswerUpdateView,
     AnswerDeleteView,
     AnswerDetailView,
+    AnswerListPartialView,
 )
 
 from forum.views.comment_views import (

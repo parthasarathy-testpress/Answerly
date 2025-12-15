@@ -54,15 +54,16 @@
       <!-- ✅ Answers Section -->
       <h4 class="fw-semibold mb-3">Answers</h4>
 
-      {% for answer in answers %}
-        <a href="{% url 'answer_detail' answer_id=answer.pk %}" class="text-decoration-none text-reset">
-          {% include "forum/_answer_card.html" with answer=answer %}
-        </a>
-      {% empty %}
-        <p class="text-muted">No answers yet.</p>
-      {% endfor %}
+      <div
+        id="answer-list"
+        hx-get="{% url 'answer-list-partial' question.id %}"
+        hx-trigger="load"
+        hx-target="#answer-list"
+        hx-swap="innerHTML"
+      >
+        <p class="text-muted">Loading answers…</p>
+      </div>
 
-      {% include "_pagination.html" %}
     </div>
   </div>
 </div>
