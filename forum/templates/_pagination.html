@@ -7,11 +7,7 @@
           class="page-link"
           href="?page={{ page_obj.previous_page_number }}"
           {% if htmx_target %}
-            {% if partial_url %}
-              hx-get="{{ partial_url }}?page={{ page_obj.previous_page_number }}"
-            {% else %}
-              hx-get="?page={{ page_obj.previous_page_number }}"
-            {% endif %}
+            hx-get="{{ partial_url|default:'' }}?page={{ page_obj.previous_page_number }}"
             hx-target="{{ htmx_target }}"
             hx-swap="innerHTML"
           {% endif %}
@@ -25,11 +21,7 @@
         <a class="page-link"
            href="?page={{ num }}"
            {% if htmx_target %}
-             {% if partial_url %}
-               hx-get="{{ partial_url }}?page={{ num }}"
-             {% else %}
-               hx-get="?page={{ num }}"
-             {% endif %}
+             hx-get="{{ partial_url|default:'' }}?page={{ num }}"
              hx-target="{{ htmx_target }}"
              hx-swap="innerHTML"
            {% endif %}
@@ -43,11 +35,7 @@
         <a class="page-link"
            href="?page={{ page_obj.next_page_number }}"
            {% if htmx_target %}
-             {% if partial_url %}
-               hx-get="{{ partial_url }}?page={{ page_obj.next_page_number }}"
-             {% else %}
-               hx-get="?page={{ page_obj.next_page_number }}"
-             {% endif %}
+             hx-get="{{ partial_url|default:'' }}?page={{ page_obj.next_page_number }}"
              hx-target="{{ htmx_target }}"
              hx-swap="innerHTML"
            {% endif %}

@@ -162,7 +162,7 @@ class AnswerListPartialView(ListView):
             pk=self.kwargs["question_id"]
         )
         return (
-            self.question.answers
+            self.question.answers.select_related("author")
             .annotate(
                 upvotes=Count("votes", filter=Q(votes__vote_type=1)),
                 downvotes=Count("votes", filter=Q(votes__vote_type=-1)),
@@ -174,6 +174,5 @@ class AnswerListPartialView(ListView):
         context = super().get_context_data(**kwargs)
         context["htmx_target"] = "#answer-list"
         context["partial_url"] = self.request.path
-        context["question"] = getattr(self, "question", None)
         return context
 
