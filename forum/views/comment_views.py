@@ -1,10 +1,14 @@
-from django.views.generic import UpdateView, DeleteView
+from django.views.generic import UpdateView, DeleteView, ListView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 
-from forum.models import Comment
+from forum.models import Comment, Answer
 from forum.forms import CommentForm
 from forum.views.mixins import AuthorRequiredMixin
+
+from django.shortcuts import get_object_or_404
+from django.db.models import Count, Q
+from django.contrib.contenttypes.models import ContentType
 
 
 class CommentUpdateView(LoginRequiredMixin, AuthorRequiredMixin, UpdateView):
@@ -47,4 +51,54 @@ class CommentDeleteView(LoginRequiredMixin, AuthorRequiredMixin, DeleteView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['cancel_url'] = self.get_success_url()
+        return context
+
+class AnswerCommentsPartialView(ListView):
+    model = Comment
+    template_name = "forum/partials/comment_list.html"
+    context_object_name = "comments"
+    paginate_by = 3
+
+    def dispatch(self, request, *args, **kwargs):
+        self.answer = get_object_or_404(Answer, pk=self.kwargs.get("answer_id"))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        comments = (
+            Comment.objects.filter(
+                content_type=ContentType.objects.get_for_model(Answer),
+                object_id=self.answer.pk,
+                parent__isnull=True,
+            )
+            .select_related("author")
+            .annotate(
+                upvotes=Count("votes", filter=Q(votes__vote_type=1)),
+                downvotes=Count("votes", filter=Q(votes__vote_type=-1)),
+            )
+            .order_by("-created_at")
+        )
+
+        def annotate_replies(comment):
+            replies = (
+                comment.replies.select_related("author")
+                .annotate(
+                    upvotes=Count("votes", filter=Q(votes__vote_type=1)),
+                    downvotes=Count("votes", filter=Q(votes__vote_type=-1)),
+                )
+                .order_by("-created_at")
+            )
+            for reply in replies:
+                reply.replies_cached = list(annotate_replies(reply))
+            return replies
+
+        for c in comments:
+            c.replies_cached = list(annotate_replies(c))
+
+        return comments
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["htmx_target"] = "#comment-list"
+        context["partial_url"] = self.request.path
+        context["answer"] = self.answer
         return context
