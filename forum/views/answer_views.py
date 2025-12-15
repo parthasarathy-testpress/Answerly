@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404, redirect
-from django.views.generic import CreateView, UpdateView, DeleteView, DetailView
+from django.views.generic import CreateView, UpdateView, DeleteView, DetailView, ListView
 from django.urls import reverse_lazy
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
@@ -149,3 +149,31 @@ class AnswerDetailView(DetailView):
 
         context = self.get_context_data(comment_form=form)
         return self.render_to_response(context)
+
+class AnswerListPartialView(ListView):
+    model = Answer
+    template_name = "forum/partials/answer_list.html"
+    context_object_name = "answers"
+    paginate_by = 3
+
+    def get_queryset(self):
+        self.question = get_object_or_404(
+            Question,
+            pk=self.kwargs["question_id"]
+        )
+        return (
+            self.question.answers
+            .annotate(
+                upvotes=Count("votes", filter=Q(votes__vote_type=1)),
+                downvotes=Count("votes", filter=Q(votes__vote_type=-1)),
+            )
+            .order_by("-created_at")
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["htmx_target"] = "#answer-list"
+        context["partial_url"] = self.request.path
+        context["question"] = getattr(self, "question", None)
+        return context
+

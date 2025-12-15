@@ -191,7 +191,10 @@ class AnswerListPaginationTests(TestCase):
                 content=f"Answer {i+1}"
             )
 
-        self.url = reverse("question_detail", kwargs={"question_id": self.question.pk})
+        self.url = reverse(
+            "answer-list-partial",
+            kwargs={"question_id": self.question.pk},
+        )
 
     def test_first_page_answers_count(self):
         response = self.client.get(self.url)
@@ -216,9 +219,19 @@ class AnswerListPaginationTests(TestCase):
 
     def test_invalid_page_number(self):
         response = self.client.get(f"{self.url}?page=999")
-        answers = response.context["answers"]
-        self.assertEqual(len(answers), 1)
-        self.assertEqual(response.context["page_obj"].number, 3)
+        self.assertEqual(response.status_code, 404)
+
+    def test_htmx_request_returns_partial(self):
+        response = self.client.get(
+            self.url,
+            HTTP_HX_REQUEST="true",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(
+            response,
+            "forum/partials/answer_list.html",
+        )
 
 class AnswerCreateViewTests(TestCase):
     def setUp(self):
