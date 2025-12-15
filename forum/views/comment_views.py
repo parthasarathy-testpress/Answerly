@@ -64,7 +64,7 @@ class AnswerCommentsPartialView(ListView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        comments = (
+        return (
             Comment.objects.filter(
                 content_type=ContentType.objects.get_for_model(Answer),
                 object_id=self.answer.pk,
@@ -77,6 +77,9 @@ class AnswerCommentsPartialView(ListView):
             )
             .order_by("-created_at")
         )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
 
         def annotate_replies(comment):
             replies = (
@@ -91,13 +94,10 @@ class AnswerCommentsPartialView(ListView):
                 reply.replies_cached = list(annotate_replies(reply))
             return replies
 
-        for c in comments:
+        comments_on_page = context[self.context_object_name]
+        for c in comments_on_page:
             c.replies_cached = list(annotate_replies(c))
 
-        return comments
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
         context["htmx_target"] = "#comment-list"
         context["partial_url"] = self.request.path
         context["answer"] = self.answer

@@ -1,11 +1,11 @@
 {% load humanize %}
 
 <hr class="my-4">
-<h4 class="mt-4 mb-3">Comments</h4>
+<h4 class="mt-4 mb-3">Comments ({{ paginator.count }})</h4>
 
 <div class="card shadow-sm border-0 rounded-3 mb-4">
   <div class="card-body">
-    <form id="comment-form" method="post" action="">
+    <form id="comment-form" method="post" action="{% url 'answer_detail' answer.pk %}">
       {% csrf_token %}
       <div>
         <textarea
