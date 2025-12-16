@@ -659,7 +659,7 @@ class CommentReplyTests(TestCase):
         self.assertEqual(reply.parent, self.parent_comment)
         self.assertEqual(reply.content_object, self.answer)
 
-class QuestionListViewSearchFilterTests(TestCase):
+class TestQuestionFilter(TestCase):
     def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(username="tester", email='test@example.com', password="pass123")
