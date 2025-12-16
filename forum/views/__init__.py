@@ -20,4 +20,4 @@ from forum.views.comment_views import (
     CommentsPartialListView,
 )
 
-from forum.views.vote_views import VoteView
+from forum.views.vote_views import QuestionVoteView,AnswerVoteView,CommentVoteView
