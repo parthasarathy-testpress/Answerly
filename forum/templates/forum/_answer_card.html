@@ -1,4 +1,4 @@
-{% load humanize %}
+{% load humanize vote_tags %}
 <div class="card shadow-sm border-1 rounded-3 p-3 mb-3"
    style="transition: transform 0.2s, box-shadow 0.2s;"
      onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 15px rgba(0,0,0,0.15)';"
@@ -11,10 +11,13 @@
 
     <p class="mb-3">{{ answer.content }}</p>
 
-    {% with user_vote=answer.user_vote|default:0 %}
+    {% if request.user.is_authenticated %}
+      {% get_user_vote answer request.user as user_vote %}
+    {% endif %}
+
     <div class="d-flex gap-2 align-items-center" data-vote-group="answer-{{ answer.id }}">
       <button
-        class="btn btn-sm vote-btn {% if user_vote == 1 %}btn-success text-white{% else %}btn-outline-success{% endif %}"
+        class="btn btn-sm vote-btn {% if user_vote|default:0 == 1 %}btn-success text-white{% else %}btn-outline-success{% endif %}"
         data-type="1"
         data-url="{% url 'vote' 'answer' answer.id %}"
         data-vote-type="1"
@@ -24,7 +27,7 @@
         (<span data-upvote-count>{{ answer.upvotes }}</span>)
       </button>
       <button
-        class="btn btn-sm vote-btn {% if user_vote == -1 %}btn-danger text-white{% else %}btn-outline-danger{% endif %}"
+        class="btn btn-sm vote-btn {% if user_vote|default:0 == -1 %}btn-danger text-white{% else %}btn-outline-danger{% endif %}"
         data-type="-1"
         data-url="{% url 'vote' 'answer' answer.id %}"
         data-vote-type="-1"
@@ -34,7 +37,6 @@
         (<span data-downvote-count>{{ answer.downvotes }}</span>)
       </button>
     </div>
-    {% endwith %}
 
     {% if request.user.is_authenticated and request.user == answer.author %}
       <div class="d-flex justify-content-end gap-3">

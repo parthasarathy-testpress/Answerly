@@ -66,7 +66,8 @@ class QuestionDetailView(DetailView):
 
     def get_question_vote_context(self, question):
         vote_counts = question.get_vote_counts()
-        user_vote = question.get_user_vote(self.request.user)
+        user = self.request.user
+        user_vote = question.get_user_voted_type(user) if user.is_authenticated else 0
         return {
             "question_upvotes": vote_counts["upvotes"],
             "question_downvotes": vote_counts["downvotes"],

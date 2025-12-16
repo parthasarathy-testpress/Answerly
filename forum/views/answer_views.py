@@ -9,7 +9,6 @@ from forum.models import Answer, Question,Vote
 from forum.forms import AnswerForm, CommentForm
 from forum.views.mixins import AuthorRequiredMixin
 from django.contrib.contenttypes.models import ContentType
-from forum.views.utils import attach_user_votes
 
 class AnswerCreateView(LoginRequiredMixin, CreateView):
     model = Answer
@@ -77,7 +76,8 @@ class AnswerDetailView(DetailView):
 
     def get_answer_vote_context(self, answer):
         vote_counts = answer.get_vote_counts()
-        user_vote = answer.get_user_vote(self.request.user)
+        user = self.request.user
+        user_vote = answer.get_user_voted_type(user) if user.is_authenticated else 0
         return {
             "answer_upvotes": vote_counts["upvotes"],
             "answer_downvotes": vote_counts["downvotes"],
@@ -123,7 +123,6 @@ class AnswerListPartialView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        attach_user_votes(self.request.user, context["answers"])
         context["htmx_target"] = "#answer-list"
         context["partial_url"] = self.request.path
         return context

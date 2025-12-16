@@ -9,7 +9,6 @@ from forum.views.mixins import AuthorRequiredMixin
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, Q
 from django.contrib.contenttypes.models import ContentType
-from forum.views.utils import attach_user_votes
 
 
 class CommentUpdateView(LoginRequiredMixin, AuthorRequiredMixin, UpdateView):
@@ -71,7 +70,6 @@ class CommentsPartialListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        attach_user_votes(self.request.user, context["comments"])
         context["htmx_target"] = "#comment-list"
         context["partial_url"] = self.request.path
         context["answer"] = self.answer

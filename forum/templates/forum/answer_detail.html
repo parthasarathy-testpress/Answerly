@@ -1,6 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
-{% load humanize %}
+{% load static humanize vote_tags %}
 
 {% block title %}Answer Detail - {{ question.title }}{% endblock %}
 
@@ -29,7 +28,7 @@
             <p class="mb-3">{{ answer.content }}</p>
 
 
-            {% with user_vote=answer_user_vote %}
+            {% get_user_vote answer request.user as user_vote %}
             <div class="d-flex align-items-center gap-3 mt-3" data-vote-group="answer-{{ answer.id }}">
               <button
                 class="btn btn-sm vote-btn {% if user_vote == 1 %}btn-success text-white{% else %}btn-outline-success{% endif %}"
@@ -53,7 +52,6 @@
                 (<span data-downvote-count>{{ answer_downvotes }}</span>)
               </button>
             </div>
-            {% endwith %}
 
             {% if request.user.is_authenticated and request.user == answer.author %}
             <div class="d-flex justify-content-end gap-3 mt-3">

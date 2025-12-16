@@ -1,3 +1,4 @@
+{% load humanize vote_tags %}
 <div class="card shadow-sm border-1 rounded-3 p-3 mb-3"
    style="transition: transform 0.2s, box-shadow 0.2s;"
      onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 15px rgba(0,0,0,0.15)';"
@@ -20,10 +21,13 @@
 
     <p class="mb-3">{{ comment.content }}</p>
 
-    {% with user_vote=comment.user_vote|default:0 %}
+    {% if request.user.is_authenticated %}
+      {% get_user_vote comment request.user as user_vote %}
+    {% endif %}
+
     <div class="d-flex gap-2 align-items-center" data-vote-group="comment-{{ comment.id }}">
       <button
-        class="btn btn-sm vote-btn {% if user_vote == 1 %}btn-success text-white{% else %}btn-outline-success{% endif %}"
+        class="btn btn-sm vote-btn {% if user_vote|default:0 == 1 %}btn-success text-white{% else %}btn-outline-success{% endif %}"
         data-type="1"
         data-url="{% url 'vote' 'comment' comment.id %}"
         data-vote-type="1"
@@ -33,7 +37,7 @@
         (<span data-upvote-count>{{ comment.upvotes }}</span>)
       </button>
       <button
-        class="btn btn-sm vote-btn {% if user_vote == -1 %}btn-danger text-white{% else %}btn-outline-danger{% endif %}"
+        class="btn btn-sm vote-btn {% if user_vote|default:0 == -1 %}btn-danger text-white{% else %}btn-outline-danger{% endif %}"
         data-type="-1"
         data-url="{% url 'vote' 'comment' comment.id %}"
         data-vote-type="-1"
@@ -42,6 +46,6 @@
         <i class="bi bi-hand-thumbs-down"></i>
         (<span data-downvote-count>{{ comment.downvotes }}</span>)
       </button>
+    </div>
   </div>
-    {% endwith %}
 </div>
