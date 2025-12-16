@@ -41,9 +41,7 @@ class VoteCountMixin:
             "downvotes": votes.get('downvotes') or 0,
         }
 
-    def get_user_vote(self, user):
-        if not user.is_authenticated:
-            return 0
+    def get_user_voted_type(self, user):
         vote = self.votes.filter(user=user).first()
         return vote.vote_type if vote else 0
 
