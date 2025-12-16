@@ -1,4 +1,4 @@
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
+from django.views.generic import CreateView, UpdateView, DeleteView, DetailView
 from django.db.models import Sum, Count, Q
 from django.urls import reverse_lazy
 from django.core.paginator import Paginator
@@ -7,13 +7,16 @@ from forum.models import Question
 from forum.forms import QuestionForm
 from forum.views.mixins import AuthorRequiredMixin
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django_filters.views import FilterView
+from ..filters import QuestionFilter
 
 
-class QuestionListView(ListView):
+class QuestionListView(FilterView):
     model = Question
     template_name = 'forum/question_list.html'
     context_object_name = 'questions'
     paginate_by = 10
+    filterset_class = QuestionFilter
 
     def get_queryset(self):
         return Question.objects.annotate(
