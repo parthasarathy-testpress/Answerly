@@ -53,7 +53,7 @@ class CommentDeleteView(LoginRequiredMixin, AuthorRequiredMixin, DeleteView):
         context['cancel_url'] = self.get_success_url()
         return context
 
-class AnswerCommentsPartialView(ListView):
+class CommentsPartialListView(ListView):
     model = Comment
     template_name = "forum/partials/comment_list.html"
     context_object_name = "comments"
