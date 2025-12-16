@@ -16,20 +16,15 @@ class CommentUpdateView(LoginRequiredMixin, AuthorRequiredMixin, UpdateView):
     form_class = CommentForm
     template_name = "forum/comment_update_form.html"
     pk_url_kwarg = 'comment_id'
-    _success_url = None
 
     def get_success_url(self):
-        if self._success_url is None:
-            root = self.object
-            while root.parent is not None:
-                root = root.parent
-            answer = root.content_object
-            self._success_url = reverse_lazy('answer_detail', kwargs={'answer_id': answer.pk})
-        return self._success_url
+        answer=self.object.content_object
+        return reverse_lazy('answer_detail', kwargs={'answer_id': answer.pk})
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['cancel_url'] = self.get_success_url()
+        answer=self.object.content_object
+        context['cancel_url'] = reverse_lazy('answer_detail', kwargs={'answer_id': answer.pk})
         return context
 
 
@@ -37,20 +32,15 @@ class CommentDeleteView(LoginRequiredMixin, AuthorRequiredMixin, DeleteView):
     model = Comment
     template_name = "forum/comment_confirm_delete.html"
     pk_url_kwarg = 'comment_id'
-    _success_url = None
 
     def get_success_url(self):
-        if self._success_url is None:
-            root = self.object
-            while root.parent is not None:
-                root = root.parent
-            answer = root.content_object
-            self._success_url = reverse_lazy('answer_detail', kwargs={'answer_id': answer.pk})
-        return self._success_url
+        answer=self.object.content_object
+        return reverse_lazy('answer_detail', kwargs={'answer_id': answer.pk})
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['cancel_url'] = self.get_success_url()
+        answer=self.object.content_object
+        context['cancel_url'] = reverse_lazy('answer_detail', kwargs={'answer_id': answer.pk})
         return context
 
 class CommentsPartialListView(ListView):
@@ -80,24 +70,6 @@ class CommentsPartialListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        def annotate_replies(comment):
-            replies = (
-                comment.replies.select_related("author")
-                .annotate(
-                    upvotes=Count("votes", filter=Q(votes__vote_type=1)),
-                    downvotes=Count("votes", filter=Q(votes__vote_type=-1)),
-                )
-                .order_by("-created_at")
-            )
-            for reply in replies:
-                reply.replies_cached = list(annotate_replies(reply))
-            return replies
-
-        comments_on_page = context[self.context_object_name]
-        for c in comments_on_page:
-            c.replies_cached = list(annotate_replies(c))
-
         context["htmx_target"] = "#comment-list"
         context["partial_url"] = self.request.path
         context["answer"] = self.answer
