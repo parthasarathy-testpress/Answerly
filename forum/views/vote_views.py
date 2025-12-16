@@ -30,10 +30,9 @@ class VoteView(LoginRequiredMixin, View):
 
         try:
             vote_value = int(vote_type)
+            if vote_value not in (1, -1):
+                raise ValueError
         except (TypeError, ValueError):
-            return HttpResponseBadRequest("vote_type must be 1 or -1.")
-
-        if vote_value not in (1, -1):
             return HttpResponseBadRequest("vote_type must be 1 or -1.")
 
         target = get_object_or_404(model_cls, pk=object_id)

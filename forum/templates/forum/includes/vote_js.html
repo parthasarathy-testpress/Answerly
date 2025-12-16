@@ -33,7 +33,7 @@
       vote(event) {
         const button = event.currentTarget;
         const url = button.dataset.url;
-        const voteType = button.dataset.type;
+        const voteType = button.dataset.voteType;
         const group = button.closest("[data-vote-group]");
         const loginUrl = document.body.dataset.loginUrl;
         if (!url || !group) return;
@@ -48,15 +48,24 @@
           body: new URLSearchParams({ vote_type: voteType }),
         })
           .then(async (response) => {
-            const data = await response.json().catch(() => ({}));
             if (response.status === 401 && loginUrl) {
               window.location.href = loginUrl;
               return;
             }
+
             if (!response.ok) {
-              const message = data.error || "Unable to submit vote.";
+              let message = "Unable to submit vote.";
+              try {
+                const errorData = await response.json();
+                message = errorData.error || message;
+              } catch {
+                const text = await response.text();
+                if (text) message = text;
+              }
               throw new Error(message);
             }
+
+            const data = await response.json();
             const upCount = group.querySelector("[data-upvote-count]");
             const downCount = group.querySelector("[data-downvote-count]");
             if (upCount) upCount.textContent = data.upvotes;
