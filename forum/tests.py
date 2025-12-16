@@ -438,8 +438,10 @@ class AnswerDetailViewTests(TestCase):
             for i in range(5)
         ]
 
-        response_page1 = self.client.get(self.detail_url)
-        response_page2 = self.client.get(self.detail_url + "?page=2")
+        partial_url = reverse("answer-comments-partial", kwargs={"answer_id": self.answer.pk})
+
+        response_page1 = self.client.get(partial_url)
+        response_page2 = self.client.get(partial_url + "?page=2")
 
         self.assertEqual(response_page1.status_code, 200)
         self.assertTrue(response_page1.context["is_paginated"])
@@ -454,10 +456,11 @@ class AnswerDetailViewTests(TestCase):
             author=self.user2, content="Second", content_object=self.answer
         )
 
-        response = self.client.get(self.detail_url)
+        partial_url = reverse("answer-comments-partial", kwargs={"answer_id": self.answer.pk})
+        response = self.client.get(partial_url)
         self.assertEqual(response.status_code, 200)
         self.assertIn("comments", response.context)
-        self.assertEqual(response.context["comments"].paginator.count, 2)
+        self.assertEqual(response.context["paginator"].count, 2)
 
     
     def test_authenticated_user_can_post_valid_comment(self):
@@ -471,7 +474,10 @@ class AnswerDetailViewTests(TestCase):
         comment = Comment.objects.get(content="Nice explanation!")
         self.assertEqual(comment.author, self.user1)
         self.assertEqual(comment.content_object, self.answer)
-        self.assertContains(response, "Nice explanation!")
+        # the detail page loads comments via HTMX; fetch the comments partial
+        partial_url = reverse("answer-comments-partial", kwargs={"answer_id": self.answer.pk})
+        partial_resp = self.client.get(partial_url)
+        self.assertContains(partial_resp, "Nice explanation!")
 
     def test_anonymous_user_cannot_post_comment(self):
         data = {"content": "Should not work!"}
@@ -547,7 +553,8 @@ class AnswerDetailNestedRepliesTests(TestCase):
         self.url = reverse("answer_detail", kwargs={"answer_id": self.answer.pk})
 
     def test_nested_replies_in_context(self):
-        response = self.client.get(self.url)
+        partial_url = reverse("answer-comments-partial", kwargs={"answer_id": self.answer.pk})
+        response = self.client.get(partial_url)
         self.assertEqual(response.status_code, 200)
 
         comments = response.context["comments"]
@@ -568,7 +575,8 @@ class AnswerDetailNestedRepliesTests(TestCase):
         self.assertEqual(level3.content, "Reply level 3")
 
     def test_vote_counts_for_nested_replies(self):
-        response = self.client.get(self.url)
+        partial_url = reverse("answer-comments-partial", kwargs={"answer_id": self.answer.pk})
+        response = self.client.get(partial_url)
         self.assertEqual(response.status_code, 200)
 
         comments = response.context["comments"]
@@ -593,7 +601,8 @@ class AnswerDetailNestedRepliesTests(TestCase):
                 content=f"Extra top comment {i}",
             )
 
-        response = self.client.get(self.url)
+        partial_url = reverse("answer-comments-partial", kwargs={"answer_id": self.answer.pk})
+        response = self.client.get(partial_url)
         self.assertEqual(response.status_code, 200)
 
         self.assertTrue(response.context["is_paginated"])

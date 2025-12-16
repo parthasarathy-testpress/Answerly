@@ -57,43 +57,15 @@
         ← Back to Question
       </a>      
 
-      <!-- ✅ Comments Section -->
-      <hr class="my-4">
-      <h4 class="mt-4 mb-3">Comments ({{ comments.paginator.count }})</h4>
-
-      <!-- ✅ Inline Comment Box -->
-      <div class="card shadow-sm border-0 rounded-3 mb-4">
-        <div class="card-body">
-          <form id="comment-form" method="post" action="">
-            {% csrf_token %}
-            <div>
-              <textarea
-                name="content"
-                id="id_content"
-                class="form-control mb-3"
-                rows="4"
-                placeholder="Add a public comment..."
-                required
-                style="resize: vertical;"
-              ></textarea>
-              <div class="d-flex justify-content-end gap-2">
-                <button type="reset" class="btn btn-outline-danger btn-sm">Clear</button>
-                <button type="submit" class="btn btn-primary btn-sm">Comment</button>
-              </div>
-            </div>
-          </form>
+      <div id="comment-section">
+        <hr class="my-4">
+        <div id="comment-list"
+             hx-get="{% url 'answer-comments-partial' answer_id=answer.pk %}"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            Loading comments...
         </div>
       </div>
-
-      <!-- ✅ Render Comments -->
-      {% for comment in comments %}
-        {% include "forum/_comment_card.html" with comment=comment %}
-      {% empty %}
-        <p class="text-muted fst-italic">No comments yet.</p>
-      {% endfor %}
-
-      {% include "_pagination.html" %}
-      <!-- ✅ End Comments Section -->
 
     </div>
   </div>
@@ -104,9 +76,9 @@
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-  const commentForm = document.getElementById("comment-form");
-  if (commentForm) {
-    commentForm.addEventListener("submit", function (e) {
+  // Delegated handler for the main comment form (works for HTMX-loaded form)
+  document.addEventListener("submit", function (e) {
+    if (e.target && e.target.id === "comment-form") {
       {% if not user.is_authenticated %}
         e.preventDefault();
 
@@ -118,12 +90,13 @@ document.addEventListener("DOMContentLoaded", function () {
             <strong>⚠️ Please login</strong> to add a comment.
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
           `;
-          commentForm.parentElement.prepend(alertDiv);
+          const insertPoint = document.querySelector('#comment-list') || document.body;
+          insertPoint.prepend(alertDiv);
         }
         return;
       {% endif %}
-    });
-  }
+    }
+  });
 
   // ✅ Handle showing/hiding replies
   document.addEventListener("click", function(e) {
