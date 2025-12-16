@@ -66,7 +66,9 @@ class QuestionDetailView(DetailView):
 
     def get_question_vote_context(self, question):
         vote_counts = question.get_vote_counts()
+        user_vote = question.get_user_vote(self.request.user)
         return {
             "question_upvotes": vote_counts["upvotes"],
             "question_downvotes": vote_counts["downvotes"],
+            "question_user_vote": user_vote,
         }

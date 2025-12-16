@@ -11,14 +11,30 @@
 
     <p class="mb-3">{{ answer.content }}</p>
 
-    <div class="d-flex gap-2 align-items-center">
-      <button class="btn btn-outline-success btn-sm" data-type="1" data-id="{{ answer.id }}">
-        <i class="bi bi-hand-thumbs-up"></i> ({{ answer.upvotes }})
+    {% with user_vote=answer.user_vote|default:0 %}
+    <div class="d-flex gap-2 align-items-center" data-vote-group="answer-{{ answer.id }}">
+      <button
+        class="btn btn-sm vote-btn {% if user_vote == 1 %}btn-success text-white{% else %}btn-outline-success{% endif %}"
+        data-type="1"
+        data-url="{% url 'vote' 'answer' answer.id %}"
+        data-vote-type="1"
+        @click.prevent.stop="vote($event)"
+      >
+        <i class="bi bi-hand-thumbs-up"></i>
+        (<span data-upvote-count>{{ answer.upvotes }}</span>)
       </button>
-      <button class="btn btn-outline-danger btn-sm" data-type="-1" data-id="{{ answer.id }}">
-        <i class="bi bi-hand-thumbs-down"></i> ({{ answer.downvotes }})
+      <button
+        class="btn btn-sm vote-btn {% if user_vote == -1 %}btn-danger text-white{% else %}btn-outline-danger{% endif %}"
+        data-type="-1"
+        data-url="{% url 'vote' 'answer' answer.id %}"
+        data-vote-type="-1"
+        @click.prevent.stop="vote($event)"
+      >
+        <i class="bi bi-hand-thumbs-down"></i>
+        (<span data-downvote-count>{{ answer.downvotes }}</span>)
       </button>
     </div>
+    {% endwith %}
 
     {% if request.user.is_authenticated and request.user == answer.author %}
       <div class="d-flex justify-content-end gap-3">

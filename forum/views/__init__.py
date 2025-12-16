@@ -19,3 +19,5 @@ from forum.views.comment_views import (
     CommentDeleteView,
     CommentsPartialListView,
 )
+
+from forum.views.vote_views import VoteView

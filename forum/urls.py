@@ -2,7 +2,8 @@ from django.urls import path
 from .views import QuestionListView,QuestionCreateView,\
     QuestionUpdateView,QuestionDeleteView,QuestionDetailView,\
     AnswerCreateView,AnswerUpdateView,AnswerDeleteView,AnswerDetailView,\
-    CommentUpdateView,CommentDeleteView,AnswerListPartialView,CommentsPartialListView
+    CommentUpdateView,CommentDeleteView,AnswerListPartialView,CommentsPartialListView,\
+    VoteView
 
 urlpatterns = [
     path('', QuestionListView.as_view(), name='question_list'),
@@ -18,4 +19,5 @@ urlpatterns = [
     path('answers/<int:answer_id>/comments/', CommentsPartialListView.as_view(), name='answer-comments-partial'),
     path('comment/<int:comment_id>/edit/', CommentUpdateView.as_view(), name='comment_update'),
     path('comment/<int:comment_id>/delete/', CommentDeleteView.as_view(), name='comment_delete'),
+    path('vote/<str:model>/<int:object_id>/', VoteView.as_view(), name='vote'),
 ]

@@ -31,19 +31,31 @@
 
           <p class="mb-4">{{ question.description }}</p>
 
-          <div class="d-flex align-items-center gap-3">
-            <button id="upvote-btn"
-                    class="btn btn-outline-success btn-sm"
-                    data-type="1">
-              <i class="bi bi-hand-thumbs-up"></i> (<span id="upvote-count">{{ question_upvotes }}</span>)
+          {% with user_vote=question_user_vote %}
+          <div class="d-flex align-items-center gap-3" data-vote-group="question-{{ question.id }}">
+            <button
+              class="btn btn-sm vote-btn {% if user_vote == 1 %}btn-success text-white{% else %}btn-outline-success{% endif %}"
+              data-type="1"
+              data-url="{% url 'vote' 'question' question.id %}"
+              data-vote-type="1"
+              @click.prevent.stop="vote($event)"
+            >
+              <i class="bi bi-hand-thumbs-up"></i>
+              (<span data-upvote-count>{{ question_upvotes }}</span>)
             </button>
 
-            <button id="downvote-btn"
-                    class="btn btn-outline-danger btn-sm"
-                    data-type="-1">
-              <i class="bi bi-hand-thumbs-down"></i> (<span id="downvote-count">{{ question_downvotes }}</span>)
+            <button
+              class="btn btn-sm vote-btn {% if user_vote == -1 %}btn-danger text-white{% else %}btn-outline-danger{% endif %}"
+              data-type="-1"
+              data-url="{% url 'vote' 'question' question.id %}"
+              data-vote-type="-1"
+              @click.prevent.stop="vote($event)"
+            >
+              <i class="bi bi-hand-thumbs-down"></i>
+              (<span data-downvote-count>{{ question_downvotes }}</span>)
             </button>
           </div>
+          {% endwith %}
           <a href="{% url 'answer_post' question.pk %}" class="btn btn-success position-absolute bottom-0 end-0 m-3">
              <i class="bi bi-pencil-square"></i> Answer The Question
           </a>
