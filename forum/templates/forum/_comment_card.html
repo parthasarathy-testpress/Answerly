@@ -1,3 +1,4 @@
+{% load humanize vote_tags %}
 <div class="card shadow-sm border-1 rounded-3 p-3 mb-3"
    style="transition: transform 0.2s, box-shadow 0.2s;"
      onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 15px rgba(0,0,0,0.15)';"
@@ -20,12 +21,42 @@
 
     <p class="mb-3">{{ comment.content }}</p>
 
-    <div class="d-flex gap-2 align-items-center">
-      <button class="btn btn-outline-success btn-sm" data-type="1" data-id="{{ comment.id }}">
-        <i class="bi bi-hand-thumbs-up"></i> ({{ comment.upvotes }})
-      </button>
-      <button class="btn btn-outline-danger btn-sm" data-type="-1" data-id="{{ comment.id }}">
-        <i class="bi bi-hand-thumbs-down"></i> ({{ comment.downvotes }})
-      </button>
+    {% if request.user.is_authenticated %}
+      {% get_user_vote comment request.user as user_vote %}
+
+      <div class="d-flex gap-2 align-items-center" data-vote-group="comment-{{ comment.id }}">
+        <button
+          class="btn btn-sm vote-btn {% if user_vote|default:0 == 1 %}btn-success text-white{% else %}btn-outline-success{% endif %}"
+          data-type="1"
+          data-url="{% url 'vote_comment' comment.id %}"
+          data-vote-type="1"
+          @click.prevent.stop="vote($event)"
+        >
+          <i class="bi bi-hand-thumbs-up"></i>
+          (<span data-upvote-count>{{ comment.upvotes }}</span>)
+        </button>
+        <button
+          class="btn btn-sm vote-btn {% if user_vote|default:0 == -1 %}btn-danger text-white{% else %}btn-outline-danger{% endif %}"
+          data-type="-1"
+          data-url="{% url 'vote_comment' comment.id %}"
+          data-vote-type="-1"
+          @click.prevent.stop="vote($event)"
+        >
+          <i class="bi bi-hand-thumbs-down"></i>
+          (<span data-downvote-count>{{ comment.downvotes }}</span>)
+        </button>
+      </div>
+    {% else %}
+      <div class="d-flex gap-2 align-items-center">
+        <a href="{% url 'login' %}" class="btn btn-sm btn-outline-success">
+          <i class="bi bi-hand-thumbs-up"></i>
+          (<span>{{ comment.upvotes }}</span>)
+        </a>
+        <a href="{% url 'login' %}" class="btn btn-sm btn-outline-danger">
+          <i class="bi bi-hand-thumbs-down"></i>
+          (<span>{{ comment.downvotes }}</span>)
+        </a>
+      </div>
+    {% endif %}
   </div>
 </div>

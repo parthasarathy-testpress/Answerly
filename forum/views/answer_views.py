@@ -5,10 +5,10 @@ from django.db.models import Count, Q
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import redirect_to_login
 
-from forum.models import Answer, Question
+from forum.models import Answer, Question,Vote
 from forum.forms import AnswerForm, CommentForm
 from forum.views.mixins import AuthorRequiredMixin
-
+from django.contrib.contenttypes.models import ContentType
 
 class AnswerCreateView(LoginRequiredMixin, CreateView):
     model = Answer
@@ -76,9 +76,12 @@ class AnswerDetailView(DetailView):
 
     def get_answer_vote_context(self, answer):
         vote_counts = answer.get_vote_counts()
+        user = self.request.user
+        user_vote = answer.get_user_voted_type(user) if user.is_authenticated else 0
         return {
             "answer_upvotes": vote_counts["upvotes"],
             "answer_downvotes": vote_counts["downvotes"],
+            "answer_user_vote": user_vote,
         }
 
 

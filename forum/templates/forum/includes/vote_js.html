@@ -1,0 +1,71 @@
+<script>
+  document.addEventListener("alpine:init", () => {
+    Alpine.data("voteController", () => ({
+      updateButtonStyles(groupEl, userVote) {
+        const upBtn = groupEl.querySelector('[data-vote-type="1"]');
+        const downBtn = groupEl.querySelector('[data-vote-type="-1"]');
+        const resetBtn = (btn, baseClass) => {
+          if (!btn) return;
+          btn.classList.remove("btn-success", "btn-danger", "text-white");
+          btn.classList.add(baseClass);
+        };
+        resetBtn(upBtn, "btn-outline-success");
+        resetBtn(downBtn, "btn-outline-danger");
+        if (userVote === 1 && upBtn) {
+          upBtn.classList.remove("btn-outline-success");
+          upBtn.classList.add("btn-success", "text-white");
+        } else if (userVote === -1 && downBtn) {
+          downBtn.classList.remove("btn-outline-danger");
+          downBtn.classList.add("btn-danger", "text-white");
+        }
+      },
+      vote(event) {
+        const button = event.currentTarget;
+        const baseUrl = button.dataset.url;
+        const voteType = button.dataset.voteType;
+        const group = button.closest("[data-vote-group]");
+        const loginUrl = document.body.dataset.loginUrl;
+        if (!baseUrl || !group) return;
+        button.disabled = true;
+        const url = baseUrl + (baseUrl.includes("?") ? "&" : "?") + "vote_type=" + encodeURIComponent(voteType);
+        fetch(url, {
+          method: "GET",
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+          },
+        })
+          .then(async (response) => {
+            if (response.status === 401 && loginUrl) {
+              window.location.href = loginUrl;
+              return;
+            }
+
+            if (!response.ok) {
+              let message = "Unable to submit vote.";
+              try {
+                const errorData = await response.json();
+                message = errorData.error || message;
+              } catch {
+                const text = await response.text();
+                if (text) message = text;
+              }
+              throw new Error(message);
+            }
+
+            const data = await response.json();
+            const upCount = group.querySelector("[data-upvote-count]");
+            const downCount = group.querySelector("[data-downvote-count]");
+            if (upCount) upCount.textContent = data.upvotes;
+            if (downCount) downCount.textContent = data.downvotes;
+            this.updateButtonStyles(group, data.user_vote);
+          })
+          .catch((err) => {
+            console.error(err);
+          })
+          .finally(() => {
+            button.disabled = false;
+          });
+      },
+    }));
+  });
+</script>

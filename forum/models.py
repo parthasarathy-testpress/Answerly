@@ -41,6 +41,10 @@ class VoteCountMixin:
             "downvotes": votes.get('downvotes') or 0,
         }
 
+    def get_user_voted_type(self, user):
+        vote = self.votes.filter(user=user).first()
+        return vote.vote_type if vote else 0
+
 class Question(VoteCountMixin,TimeStampedModel):
     """
     Represents a question posted by a user in the Q&A platform.
@@ -90,7 +94,7 @@ class Answer(TimeStampedModel,VoteCountMixin):
         return f"Answer by {self.author.username} to '{self.question.title}'"
 
 
-class Comment(TimeStampedModel):
+class Comment(TimeStampedModel, VoteCountMixin):
     """
     Represents a comment on a question, answer, or another comment.
     """

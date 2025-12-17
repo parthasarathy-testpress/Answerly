@@ -20,7 +20,9 @@ class QuestionListView(FilterView):
 
     def get_queryset(self):
         return Question.objects.annotate(
-            total_votes=Sum('votes__vote_type', default=0)
+            total_votes=Sum('votes__vote_type', default=0),
+            upvotes=Count('votes', filter=Q(votes__vote_type=1)),
+            downvotes=Count('votes', filter=Q(votes__vote_type=-1)),
         ).order_by('-created_at')
 
 
@@ -66,7 +68,10 @@ class QuestionDetailView(DetailView):
 
     def get_question_vote_context(self, question):
         vote_counts = question.get_vote_counts()
+        user = self.request.user
+        user_vote = question.get_user_voted_type(user) if user.is_authenticated else 0
         return {
             "question_upvotes": vote_counts["upvotes"],
             "question_downvotes": vote_counts["downvotes"],
+            "question_user_vote": user_vote,
         }
