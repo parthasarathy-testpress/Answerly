@@ -3,7 +3,7 @@ from django.views import View
 from django.contrib.contenttypes.models import ContentType
 from django.shortcuts import get_object_or_404
 from forum.models import Question, Answer, Comment, Vote
-from forum.views.domain.vote_service import update_votes
+from forum.domain.vote import update_votes
 
 class QuestionVoteView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
