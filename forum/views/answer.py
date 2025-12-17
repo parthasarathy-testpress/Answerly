@@ -1,13 +1,15 @@
 from django.shortcuts import get_object_or_404, redirect
-from django.views.generic import CreateView, UpdateView, DeleteView, DetailView, ListView
+from django.views.generic import CreateView, UpdateView, DeleteView, DetailView
 from django.urls import reverse_lazy
 from django.db.models import Count, Q
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import redirect_to_login
+from django_filters.views import FilterView
 
 from forum.models import Answer, Question,Vote
 from forum.forms import AnswerForm, CommentForm
 from forum.views.mixins import AuthorRequiredMixin
+from forum.filters import AnswerFilter
 from django.contrib.contenttypes.models import ContentType
 
 class AnswerCreateView(LoginRequiredMixin, CreateView):
@@ -101,11 +103,12 @@ class AnswerDetailView(DetailView):
         context = self.get_context_data(comment_form=form)
         return self.render_to_response(context)
 
-class AnswerListPartialView(ListView):
+class AnswerListPartialView(FilterView):
     model = Answer
     template_name = "forum/partials/answer_list.html"
     context_object_name = "answers"
     paginate_by = 3
+    filterset_class = AnswerFilter
 
     def get_queryset(self):
         self.question = get_object_or_404(
@@ -124,6 +127,17 @@ class AnswerListPartialView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["htmx_target"] = "#answer-list"
-        context["partial_url"] = self.request.path
+        base_url = self.request.path
+        
+        # Build URL with current query parameters for pagination (excluding page)
+        query_params = self.request.GET.copy()
+        if 'page' in query_params:
+            del query_params['page']
+        query_string = query_params.urlencode()
+        
+        context["partial_url"] = f"{base_url}?{query_string}" if query_string else base_url
+        context["base_url"] = base_url
+        context["filter_query_string"] = query_string
+        
         return context
 

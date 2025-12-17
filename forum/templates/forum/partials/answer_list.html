@@ -1,3 +1,30 @@
+{% load widget_tweaks %}
+
+<div class="mb-3">
+  <form method="get" class="d-flex align-items-center gap-2" 
+        hx-get="{{ partial_url|default:request.path }}"
+        hx-target="#answer-list"
+        hx-swap="innerHTML"
+        hx-push-url="false">
+    <div class="ms-auto">
+      {{ filter.form.vote_type|add_class:"form-select form-select-sm w-auto" }}
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">
+      <i class="bi bi-funnel"></i> Filter
+    </button>
+    {% if filter.form.vote_type.value %}
+      <a href="{{ base_url|default:request.path }}" 
+         class="btn btn-outline-secondary btn-sm"
+         hx-get="{{ base_url|default:request.path }}"
+         hx-target="#answer-list"
+         hx-swap="innerHTML"
+         hx-push-url="false">
+        Clear
+      </a>
+    {% endif %}
+  </form>
+</div>
+
 {% for answer in answers %}
   <a href="{% url 'answer_detail' answer_id=answer.pk %}"
      class="text-decoration-none text-reset">

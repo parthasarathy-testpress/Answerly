@@ -1,7 +1,7 @@
 from django.db.models import Q, Count
 import django_filters
 from taggit.models import Tag
-from .models import Question, Vote
+from .models import Question, Answer, Vote
 
 from django.db import models
 
@@ -57,3 +57,9 @@ class QuestionFilter(VoteTypeFilterMixin):
         if not value:
             return queryset
         return queryset.filter(tags__in=[value])
+
+
+class AnswerFilter(VoteTypeFilterMixin):
+    class Meta:
+        model = Answer
+        fields = ['vote_type']

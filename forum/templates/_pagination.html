@@ -5,9 +5,9 @@
       <li class="page-item">
         <a
           class="page-link"
-          href="?page={{ page_obj.previous_page_number }}"
+          href="?page={{ page_obj.previous_page_number }}{% if filter_query_string %}&{{ filter_query_string }}{% endif %}"
           {% if htmx_target %}
-            hx-get="{{ partial_url|default:'' }}?page={{ page_obj.previous_page_number }}"
+            hx-get="{% if base_url %}{{ base_url }}{% else %}{{ partial_url|default:'' }}{% endif %}?page={{ page_obj.previous_page_number }}{% if filter_query_string %}&{{ filter_query_string }}{% endif %}"
             hx-target="{{ htmx_target }}"
             hx-swap="innerHTML"
           {% endif %}
@@ -19,9 +19,9 @@
     {% for num in paginator.page_range %}
       <li class="page-item {% if page_obj.number == num %}active{% endif %}">
         <a class="page-link"
-           href="?page={{ num }}"
+           href="?page={{ num }}{% if filter_query_string %}&{{ filter_query_string }}{% endif %}"
            {% if htmx_target %}
-             hx-get="{{ partial_url|default:'' }}?page={{ num }}"
+             hx-get="{% if base_url %}{{ base_url }}{% else %}{{ partial_url|default:'' }}{% endif %}?page={{ num }}{% if filter_query_string %}&{{ filter_query_string }}{% endif %}"
              hx-target="{{ htmx_target }}"
              hx-swap="innerHTML"
            {% endif %}
@@ -33,9 +33,9 @@
     {% if page_obj.has_next %}
       <li class="page-item">
         <a class="page-link"
-           href="?page={{ page_obj.next_page_number }}"
+           href="?page={{ page_obj.next_page_number }}{% if filter_query_string %}&{{ filter_query_string }}{% endif %}"
            {% if htmx_target %}
-             hx-get="{{ partial_url|default:'' }}?page={{ page_obj.next_page_number }}"
+             hx-get="{% if base_url %}{{ base_url }}{% else %}{{ partial_url|default:'' }}{% endif %}?page={{ page_obj.next_page_number }}{% if filter_query_string %}&{{ filter_query_string }}{% endif %}"
              hx-target="{{ htmx_target }}"
              hx-swap="innerHTML"
            {% endif %}
