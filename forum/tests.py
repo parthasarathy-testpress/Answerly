@@ -61,7 +61,6 @@ class TestQuestionListView(TestCase):
         self.assertContains(response, 'Please login to see more questions', status_code=200)
         
         login_url = reverse('login')
-        current_path = reverse('question_list')
         self.assertContains(response, f'href="{login_url}?next=', status_code=200)
 
     def test_should_not_show_load_more_button_when_no_more_pages(self):
@@ -80,15 +79,6 @@ class TestQuestionListView(TestCase):
         
         self.assertNotContains(response, 'Load More Questions', status_code=200)
 
-    def test_load_more_button_should_redirect_to_login_with_next_parameter(self):
-        response = self.client.get(reverse('question_list'))
-        self.assertEqual(response.status_code, 200)
-        
-        login_url = reverse('login')
-        current_path = reverse('question_list')
-        
-        self.assertContains(response, login_url, status_code=200)
-        self.assertContains(response, '?next=', status_code=200)
 
 class TestQuestionCreateView(TestCase):
     def setUp(self):
