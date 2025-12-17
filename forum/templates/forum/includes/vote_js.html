@@ -1,17 +1,6 @@
 <script>
   document.addEventListener("alpine:init", () => {
     Alpine.data("voteController", () => ({
-      getCsrfToken() {
-        const name = "csrftoken";
-        const cookies = document.cookie ? document.cookie.split(";") : [];
-        for (const cookie of cookies) {
-          const trimmed = cookie.trim();
-          if (trimmed.startsWith(name + "=")) {
-            return decodeURIComponent(trimmed.substring(name.length + 1));
-          }
-        }
-        return "";
-      },
       updateButtonStyles(groupEl, userVote) {
         const upBtn = groupEl.querySelector('[data-vote-type="1"]');
         const downBtn = groupEl.querySelector('[data-vote-type="-1"]');
@@ -32,20 +21,18 @@
       },
       vote(event) {
         const button = event.currentTarget;
-        const url = button.dataset.url;
+        const baseUrl = button.dataset.url;
         const voteType = button.dataset.voteType;
         const group = button.closest("[data-vote-group]");
         const loginUrl = document.body.dataset.loginUrl;
-        if (!url || !group) return;
+        if (!baseUrl || !group) return;
         button.disabled = true;
+        const url = baseUrl + (baseUrl.includes("?") ? "&" : "?") + "vote_type=" + encodeURIComponent(voteType);
         fetch(url, {
-          method: "POST",
+          method: "GET",
           headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-CSRFToken": this.getCsrfToken(),
             "X-Requested-With": "XMLHttpRequest",
           },
-          body: new URLSearchParams({ vote_type: voteType }),
         })
           .then(async (response) => {
             if (response.status === 401 && loginUrl) {

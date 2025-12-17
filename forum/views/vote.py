@@ -6,9 +6,9 @@ from forum.models import Question, Answer, Comment, Vote
 from forum.domain.vote import update_votes
 
 class QuestionVoteView(LoginRequiredMixin, View):
-    def post(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         object_id = kwargs.get("object_id")
-        vote_type = request.POST.get("vote_type")
+        vote_type = request.GET.get("vote_type")
         vote_type = int(vote_type)
         content_type = ContentType.objects.get_for_model(Question)
 
@@ -24,9 +24,9 @@ class QuestionVoteView(LoginRequiredMixin, View):
 
 
 class AnswerVoteView(LoginRequiredMixin, View):
-    def post(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         object_id = kwargs.get("object_id")
-        vote_type = request.POST.get("vote_type")
+        vote_type = request.GET.get("vote_type")
         vote_type = int(vote_type)
         content_type = ContentType.objects.get_for_model(Answer)
 
@@ -42,9 +42,9 @@ class AnswerVoteView(LoginRequiredMixin, View):
 
 
 class CommentVoteView(LoginRequiredMixin, View):
-    def post(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         object_id = kwargs.get("object_id")
-        vote_type = request.POST.get("vote_type")
+        vote_type = request.GET.get("vote_type")
         vote_type = int(vote_type)
         content_type = ContentType.objects.get_for_model(Comment)
 
