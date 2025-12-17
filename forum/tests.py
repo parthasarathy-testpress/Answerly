@@ -726,3 +726,151 @@ class TestQuestionFilter(TestCase):
         self.assertEqual(questions[0], self.q1)
         self.assertEqual(questions[1], self.q2)
         self.assertEqual(questions[2], self.q3)
+
+
+class TestAnswerFilter(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="tester", email='test@example.com', password="pass123")
+        self.user2 = User.objects.create_user(username="voter2", email="v2@example.com", password="pass123")
+        self.user3 = User.objects.create_user(username="voter3", email="v3@example.com", password="pass123")
+
+        self.question = Question.objects.create(
+            title="Test Question",
+            description="Test Description",
+            author=self.user
+        )
+
+        self.answer1 = Answer.objects.create(
+            question=self.question,
+            author=self.user,
+            content="Answer 1",
+            created_at=timezone.now() - timezone.timedelta(days=2)
+        )
+        self.answer2 = Answer.objects.create(
+            question=self.question,
+            author=self.user,
+            content="Answer 2",
+            created_at=timezone.now() - timezone.timedelta(days=1)
+        )
+        self.answer3 = Answer.objects.create(
+            question=self.question,
+            author=self.user,
+            content="Answer 3",
+            created_at=timezone.now()
+        )
+
+        self.url = reverse(
+            "answer-list-partial",
+            kwargs={"question_id": self.question.pk},
+        )
+
+    def test_should_order_by_most_liked_when_vote_type_upvote(self):
+        # answer1: 1 upvote, answer2: 2 upvotes, answer3: 0 upvotes
+        answer1_ct = ContentType.objects.get_for_model(Answer)
+        Vote.objects.create(
+            user=self.user,
+            content_type=answer1_ct,
+            object_id=self.answer1.pk,
+            vote_type=Vote.VoteType.UPVOTE
+        )
+        Vote.objects.create(
+            user=self.user,
+            content_type=answer1_ct,
+            object_id=self.answer2.pk,
+            vote_type=Vote.VoteType.UPVOTE
+        )
+        Vote.objects.create(
+            user=self.user2,
+            content_type=answer1_ct,
+            object_id=self.answer2.pk,
+            vote_type=Vote.VoteType.UPVOTE
+        )
+
+        response = self.client.get(self.url, {"vote_type": Vote.VoteType.UPVOTE})
+        answers = list(response.context["answers"])
+
+        self.assertEqual(answers[0], self.answer2)
+        self.assertEqual(answers[1], self.answer1)
+        self.assertEqual(answers[2], self.answer3)
+
+    def test_should_order_by_least_liked_when_vote_type_downvote(self):
+        # answer1: 2 downvotes, answer2: 1 downvote, answer3: 0 downvotes
+        answer1_ct = ContentType.objects.get_for_model(Answer)
+        Vote.objects.create(
+            user=self.user,
+            content_type=answer1_ct,
+            object_id=self.answer1.pk,
+            vote_type=Vote.VoteType.DOWNVOTE
+        )
+        Vote.objects.create(
+            user=self.user2,
+            content_type=answer1_ct,
+            object_id=self.answer1.pk,
+            vote_type=Vote.VoteType.DOWNVOTE
+        )
+        Vote.objects.create(
+            user=self.user3,
+            content_type=answer1_ct,
+            object_id=self.answer2.pk,
+            vote_type=Vote.VoteType.DOWNVOTE
+        )
+
+        response = self.client.get(self.url, {"vote_type": Vote.VoteType.DOWNVOTE})
+        answers = list(response.context["answers"])
+
+        self.assertEqual(answers[0], self.answer1)
+        self.assertEqual(answers[1], self.answer2)
+        self.assertEqual(answers[2], self.answer3)
+
+    def test_should_order_by_created_at_when_no_filter(self):
+        # Without filter, should order by created_at (newest first)
+        response = self.client.get(self.url)
+        answers = list(response.context["answers"])
+
+        self.assertEqual(answers[0], self.answer3)
+        self.assertEqual(answers[1], self.answer2)
+        self.assertEqual(answers[2], self.answer1)
+
+    def test_should_preserve_filter_in_pagination(self):
+        # Create more answers for pagination
+        for i in range(4, 8):
+            Answer.objects.create(
+                question=self.question,
+                author=self.user,
+                content=f"Answer {i}"
+            )
+
+        # Add upvotes to some answers
+        answer_ct = ContentType.objects.get_for_model(Answer)
+        Vote.objects.create(
+            user=self.user,
+            content_type=answer_ct,
+            object_id=self.answer1.pk,
+            vote_type=Vote.VoteType.UPVOTE
+        )
+
+        # Test that filter is preserved when paginating
+        response = self.client.get(self.url, {"vote_type": Vote.VoteType.UPVOTE, "page": "1"})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("filter", response.context)
+        self.assertEqual(response.context["filter"].form["vote_type"].value(), str(Vote.VoteType.UPVOTE))
+
+    def test_should_clear_filter_when_no_vote_type_param(self):
+        answer_ct = ContentType.objects.get_for_model(Answer)
+        Vote.objects.create(
+            user=self.user,
+            content_type=answer_ct,
+            object_id=self.answer1.pk,
+            vote_type=Vote.VoteType.UPVOTE
+        )
+
+        # First request with filter
+        response_with_filter = self.client.get(self.url, {"vote_type": Vote.VoteType.UPVOTE})
+        
+        # Second request without filter (simulating clear button)
+        response_without_filter = self.client.get(self.url)
+        
+        # Should return to default ordering
+        answers = list(response_without_filter.context["answers"])
+        self.assertEqual(answers[0], self.answer3)  # Newest first

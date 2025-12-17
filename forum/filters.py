@@ -1,7 +1,7 @@
 from django.db.models import Q, Count
 import django_filters
 from taggit.models import Tag
-from .models import Question, Vote
+from .models import Question, Answer, Vote
 
 from django.db import models
 
@@ -12,7 +12,8 @@ class PopularityChoice(models.IntegerChoices):
 class VoteTypeFilterMixin(django_filters.FilterSet):
     vote_type = django_filters.ChoiceFilter(
         choices=PopularityChoice.choices,
-        method="filter_vote_type", 
+        method="filter_vote_type",
+        empty_label='Filter By Votes', 
         required=False,
         label="Popularity",
     )
@@ -57,3 +58,9 @@ class QuestionFilter(VoteTypeFilterMixin):
         if not value:
             return queryset
         return queryset.filter(tags__in=[value])
+
+
+class AnswerFilter(VoteTypeFilterMixin):
+    class Meta:
+        model = Answer
+        fields = ['vote_type']

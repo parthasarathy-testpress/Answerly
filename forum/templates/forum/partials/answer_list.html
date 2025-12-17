@@ -1,3 +1,40 @@
+{% load widget_tweaks vote_tags %}
+
+{% query_string_exclude_page request as filter_query_string %}
+
+<div class="mb-3">
+  <form method="get" class="d-flex align-items-center gap-2" id="answer-filter-form">
+    <div class="ms-auto">
+      <select 
+        name="{{ filter.form.vote_type.name }}" 
+        id="{{ filter.form.vote_type.id_for_label }}"
+        class="form-select form-select-sm w-auto"
+        hx-get="{{ request.path }}"
+        hx-target="#answer-list"
+        hx-swap="innerHTML"
+        hx-trigger="change"
+        hx-include="#answer-filter-form"
+        hx-push-url="false">
+        {% for choice in filter.form.vote_type.field.choices %}
+          <option value="{{ choice.0 }}" {% if filter.form.vote_type.value == choice.0|stringformat:"s" %}selected{% endif %}>
+            {{ choice.1 }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    {% if filter.form.vote_type.value %}
+      <a href="{{ request.path }}" 
+         class="btn btn-outline-secondary btn-sm"
+         hx-get="{{ request.path }}"
+         hx-target="#answer-list"
+         hx-swap="innerHTML"
+         hx-push-url="false">
+        Clear
+      </a>
+    {% endif %}
+  </form>
+</div>
+
 {% for answer in answers %}
   <a href="{% url 'answer_detail' answer_id=answer.pk %}"
      class="text-decoration-none text-reset">
