@@ -16,24 +16,18 @@ class VoteTypeFilterMixin(django_filters.FilterSet):
     def filter_vote_type(self, queryset, name, value):
         if not value:
             return queryset
-    
-        if int(value) == Vote.VoteType.UPVOTE:
-            return queryset.annotate(
-                upvotes=Count(
-                    "votes",
-                    filter=Q(votes__vote_type=Vote.VoteType.UPVOTE),
-                )
-            ).filter(upvotes__gte=0).order_by("-upvotes", "-created_at")
-    
-        if int(value) == Vote.VoteType.DOWNVOTE:
-            return queryset.annotate(
-                downvotes=Count(
-                    "votes",
-                    filter=Q(votes__vote_type=Vote.VoteType.DOWNVOTE),
-                )
-            ).filter(downvotes__gte=0).order_by("-downvotes", "-created_at")
-    
-        return queryset
+
+        vote_type = int(value)
+        if vote_type == Vote.VoteType.UPVOTE:
+            annotation_name = 'upvotes'
+        elif vote_type == Vote.VoteType.DOWNVOTE:
+            annotation_name = 'downvotes'
+        else:
+            return queryset
+
+        return queryset.annotate(
+            **{annotation_name: Count("votes", filter=Q(votes__vote_type=vote_type))}
+        ).order_by(f"-{annotation_name}", "-created_at")
 
 
 class QuestionFilter(VoteTypeFilterMixin):
