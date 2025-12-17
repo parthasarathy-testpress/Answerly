@@ -1,4 +1,4 @@
-from forum.views.question_views import (
+from forum.views.question import (
     QuestionListView,
     QuestionCreateView,
     QuestionUpdateView,
@@ -6,7 +6,7 @@ from forum.views.question_views import (
     QuestionDetailView,
 )
 
-from forum.views.answer_views import (
+from forum.views.answer import (
     AnswerCreateView,
     AnswerUpdateView,
     AnswerDeleteView,
@@ -14,7 +14,7 @@ from forum.views.answer_views import (
     AnswerListPartialView,
 )
 
-from forum.views.comment_views import (
+from forum.views.comment import (
     CommentUpdateView,
     CommentDeleteView,
     CommentsPartialListView,
