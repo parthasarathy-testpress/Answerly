@@ -5,13 +5,13 @@ from .models import Question, Vote
 
 from django.db import models
 
-class PopularityFilter(models.IntegerChoices):
+class PopularityChoice(models.IntegerChoices):
     MOST_LIKED = Vote.VoteType.UPVOTE, "Most liked"
     LEAST_LIKED = Vote.VoteType.DOWNVOTE, "Least liked"
 
 class VoteTypeFilterMixin(django_filters.FilterSet):
     vote_type = django_filters.ChoiceFilter(
-        choices=PopularityFilter.choices,
+        choices=PopularityChoice.choices,
         method="filter_vote_type", 
         required=False,
         label="Popularity",
