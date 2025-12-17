@@ -26,43 +26,43 @@ class TestQuestionListView(TestCase):
         question1.votes.create(user=self.user, vote_type=1)
         question1.votes.create(user=self.user2, vote_type=-1)
 
-    def test_should_question_list_view_status_and_template(self):
+    def test_should_render_question_list_and_return_status_200(self):
         response = self.client.get(reverse('question_list'))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'forum/question_list.html')
 
-    def test_should_question_list_context(self):
+    def test_should_include_questions_with_total_votes_in_context(self):
         response = self.client.get(reverse('question_list'))
         self.assertIn('questions', response.context)
         first_question = response.context['questions'][0]
         self.assertTrue(hasattr(first_question, 'total_votes'))
         self.assertEqual(first_question.total_votes, 0)
 
-    def test_should_pagination(self):
+    def test_should_paginate_questions(self):
         response = self.client.get(reverse('question_list'))
         self.assertEqual(len(response.context['questions']), 10)
 
         response_page2 = self.client.get(reverse('question_list') + '?page=2')
         self.assertEqual(len(response_page2.context['questions']), 5)
 
-class TestsQuestionCreateView(TestCase):
+class TestQuestionCreateView(TestCase):
     def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(username='testuser', email='test@example.com', password='pass123')
         self.url = reverse('question_post')
 
-    def test_should_redirect_if_not_logged_in(self):
+    def test_should_redirect_anonymous_to_login_for_question_create(self):
         response = self.client.get(self.url)
         expected_url = reverse('login') + '?next=' + self.url
         self.assertRedirects(response, expected_url)
 
-    def test_should_form_display(self):
+    def test_should_display_question_create_form(self):
         self.client.login(username='testuser', password='pass123')
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<form')
 
-    def test_should_create_question_with_tags(self):
+    def test_should_create_question_and_assign_tags(self):
         self.client.login(username='testuser', password='pass123')
         data = {
             'title': 'New Question',
@@ -78,7 +78,7 @@ class TestsQuestionCreateView(TestCase):
         self.assertIn('python', tag_names)
 
 
-class TestsQuestionUpdateView(TestCase):
+class TestQuestionUpdateView(TestCase):
     def setUp(self):
         self.author = User.objects.create_user(username='author', email='test@example.com', password='pass1234')
         self.other_user = User.objects.create_user(username='other', email='test1@example.com', password='pass1234')
@@ -92,23 +92,23 @@ class TestsQuestionUpdateView(TestCase):
 
         self.url = reverse('question_edit', kwargs={'question_id': self.question.pk})
 
-    def test_should_redirect_if_not_logged_in(self):
+    def test_should_redirect_anonymous_to_login_for_question_update(self):
         response = self.client.get(self.url)
         expected_url = reverse('login') + '?next=' + self.url
         self.assertRedirects(response, expected_url)
 
-    def test_should_access_denied_if_not_author(self):
+    def test_should_forbid_non_author_from_editing_question(self):
         self.client.login(username='other', password='pass1234')
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 403)
 
-    def test_should_get_update_view_as_author(self):
+    def test_should_allow_author_to_access_update_view(self):
         self.client.login(username='author', password='pass1234')
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Original Title')
 
-class TestsQuestionDeleteView(TestCase):
+class TestQuestionDeleteView(TestCase):
     def setUp(self):
         self.author = User.objects.create_user(username='author', email='test@example.com', password='pass1234')
         self.other_user = User.objects.create_user(username='other', email='test1@example.com', password='pass1234')
@@ -121,32 +121,32 @@ class TestsQuestionDeleteView(TestCase):
         
         self.url = reverse('question_delete', args=[self.question.pk])
 
-    def test_should_author_can_delete_question(self):
+    def test_should_allow_author_to_delete_question(self):
         self.client.login(username='author', password='pass1234')
         response = self.client.post(self.url)
         self.assertRedirects(response, reverse('question_list'))
         self.assertFalse(Question.objects.filter(id=self.question.pk).exists())
 
-    def test_should_non_author_cannot_delete_question(self):
+    def test_should_forbid_non_author_from_deleting_question(self):
         self.client.login(username='other', password='pass1234')
         response = self.client.post(self.url)
         self.assertEqual(response.status_code, 403)
         self.assertTrue(Question.objects.filter(id=self.question.pk).exists())
 
-    def test_should_anonymous_user_redirected_to_login(self):
+    def test_should_redirect_anonymous_to_login_for_question_delete(self):
         response = self.client.post(self.url)
         login_url = reverse('login')
         self.assertRedirects(response, f'{login_url}?next={self.url}')
         self.assertTrue(Question.objects.filter(id=self.question.pk).exists())
     
-    def test_should_get_delete_confirmation_page(self):
+    def test_should_show_delete_confirmation_page_to_author(self):
         self.client.login(username='author', password='pass1234')
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'forum/question_confirm_delete.html')
         self.assertContains(response, 'Are you sure you want to delete this question?')
 
-class TestsQuestionDetailView(TestCase):
+class TestQuestionDetailView(TestCase):
     def setUp(self):
         self.client = Client()
         self.user1 = User.objects.create_user(username="user1", email='test@example.com', password="pass123")
@@ -158,13 +158,13 @@ class TestsQuestionDetailView(TestCase):
         )
         self.detail_url = reverse("question_detail", kwargs={"question_id": self.question.pk})
         
-    def test_should_detail_view_renders(self):
+    def test_should_render_question_detail_and_return_200(self):
         response = self.client.get(self.detail_url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.question.title)
         self.assertContains(response, self.question.description)
 
-    def test_should_votes_count_in_context(self):
+    def test_should_include_vote_counts_in_question_context(self):
         Vote.objects.create(user=self.user1, content_object=self.question, vote_type=1)
         Vote.objects.create(user=self.user2, content_object=self.question, vote_type=-1)
         
@@ -172,7 +172,7 @@ class TestsQuestionDetailView(TestCase):
         self.assertEqual(response.context["question_upvotes"], 1)
         self.assertEqual(response.context["question_downvotes"], 1)
         
-class TestsAnswerPartialListView(TestCase):
+class TestAnswerPartialListView(TestCase):
     def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(username="user1", email='test@example.com', password="pass123")
@@ -194,32 +194,32 @@ class TestsAnswerPartialListView(TestCase):
             kwargs={"question_id": self.question.pk},
         )
 
-    def test_should_first_page_answers_count(self):
+    def test_should_return_first_page_of_answers(self):
         response = self.client.get(self.url)
         answers = response.context["answers"]
         self.assertEqual(len(answers), 3)
         self.assertTrue(response.context["is_paginated"])
         self.assertEqual(response.context["page_obj"].number, 1)
 
-    def test_should_second_page_answers_count(self):
+    def test_should_return_second_page_of_answers(self):
         response = self.client.get(f"{self.url}?page=2")
         answers = response.context["answers"]
         self.assertEqual(len(answers), 3)
         self.assertTrue(response.context["is_paginated"])
         self.assertEqual(response.context["page_obj"].number, 2)
 
-    def test_should_third_page_answers_count(self):
+    def test_should_return_third_page_of_answers(self):
         response = self.client.get(f"{self.url}?page=3")
         answers = response.context["answers"]
         self.assertEqual(len(answers), 1)
         self.assertTrue(response.context["is_paginated"])
         self.assertEqual(response.context["page_obj"].number, 3)
 
-    def test_should_invalid_page_number(self):
+    def test_should_return_404_for_invalid_answer_page(self):
         response = self.client.get(f"{self.url}?page=999")
         self.assertEqual(response.status_code, 404)
 
-    def test_should_htmx_request_returns_partial(self):
+    def test_should_return_answers_partial_for_htmx(self):
         response = self.client.get(
             self.url,
             HTTP_HX_REQUEST="true",
@@ -231,7 +231,7 @@ class TestsAnswerPartialListView(TestCase):
             "forum/partials/answer_list.html",
         )
 
-class TestsAnswerCreateView(TestCase):
+class TestAnswerCreateView(TestCase):
     def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(username="testuser", email='test@example.com', password="pass123")
@@ -243,18 +243,18 @@ class TestsAnswerCreateView(TestCase):
         )
         self.url = reverse("answer_post", kwargs={"question_id": self.question.pk})
 
-    def test_should_redirect_if_not_logged_in(self):
+    def test_should_redirect_anonymous_to_login_for_answer_create(self):
         response = self.client.get(self.url)
         login_url = reverse("login") + f"?next={self.url}"
         self.assertRedirects(response, login_url)
 
-    def test_should_view_renders_for_logged_in_user(self):
+    def test_should_display_answer_form_to_logged_in_user(self):
         self.client.login(username="testuser", password="pass123")
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "forum/answer_form.html")
 
-    def test_should_post_valid_answer_creates_object(self):
+    def test_should_create_answer_on_valid_post(self):
         self.client.login(username="testuser", password="pass123")
         data = {"content": "This is a test answer"}
         response = self.client.post(self.url, data)
@@ -266,7 +266,7 @@ class TestsAnswerCreateView(TestCase):
         expected_url = reverse("question_detail", kwargs={"question_id": self.question.pk})
         self.assertRedirects(response, expected_url)
 
-    def test_should_post_invalid_answer_shows_errors(self):
+    def test_should_show_errors_on_invalid_answer_post(self):
         self.client.login(username="testuser", password="pass123")
         data = {"content": ""}
         response = self.client.post(self.url, data)
@@ -274,12 +274,12 @@ class TestsAnswerCreateView(TestCase):
         self.assertContains(response, "This field is required.")
         self.assertEqual(Answer.objects.count(), 0)
 
-    def test_should_context_contains_question(self):
+    def test_should_include_question_in_answer_view_context(self):
         self.client.login(username="testuser", password="pass123")
         response = self.client.get(self.url)
         self.assertEqual(response.context["question"], self.question)
 
-class TestsAnswerUpdateView(TestCase):
+class TestAnswerUpdateView(TestCase):
     def setUp(self):
         self.client = Client()
         self.user1 = User.objects.create_user(username="user1", email='test@example.com', password="pass123")
@@ -296,24 +296,24 @@ class TestsAnswerUpdateView(TestCase):
         )
         self.update_url = reverse("answer_update", kwargs={"answer_id": self.answer.pk})
 
-    def test_should_redirect_if_not_logged_in(self):
+    def test_should_redirect_anonymous_to_login_for_answer_update(self):
         response = self.client.get(self.update_url)
         expected_url = f"{reverse('login')}?next={self.update_url}"
         self.assertRedirects(response, expected_url)
 
-    def test_should_access_by_non_author_forbidden(self):
+    def test_should_forbid_non_author_from_updating_answer(self):
         self.client.login(username="user2", password="pass123")
         response = self.client.get(self.update_url)
         self.assertEqual(response.status_code, 403)
 
-    def test_should_access_by_author_renders_form(self):
+    def test_should_allow_author_to_view_answer_update_form(self):
         self.client.login(username="user1", password="pass123")
         response = self.client.get(self.update_url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Original Answer")
         self.assertTemplateUsed(response, "forum/answer_update_form.html")
 
-    def test_should_successful_answer_update(self):
+    def test_should_update_answer_on_valid_post(self):
         self.client.login(username="user1", password="pass123")
         response = self.client.post(self.update_url, {"content": "Updated Answer"})
         self.answer.refresh_from_db()
@@ -321,12 +321,12 @@ class TestsAnswerUpdateView(TestCase):
         expected_url = reverse("question_detail", kwargs={"question_id": self.question.pk})
         self.assertRedirects(response, expected_url)
 
-    def test_should_context_contains_answer(self):
+    def test_should_include_answer_in_update_view_context(self):
         self.client.login(username="user1", password="pass123")
         response = self.client.get(self.update_url)
         self.assertEqual(response.context["answer"], self.answer)
 
-class TestsAnswerDeleteView(TestCase):
+class TestAnswerDeleteView(TestCase):
     def setUp(self):
         self.client = Client()
         self.user1 = User.objects.create_user(username="user1", email='test@example.com', password="pass123")
@@ -343,17 +343,17 @@ class TestsAnswerDeleteView(TestCase):
         )
         self.delete_url = reverse("answer_delete", kwargs={"answer_id": self.answer.pk})
 
-    def test_should_redirect_if_not_logged_in(self):
+    def test_should_redirect_anonymous_to_login_for_answer_delete(self):
         response = self.client.get(self.delete_url)
         self.assertNotEqual(response.status_code, 200)
         self.assertIn("/login/", response.url)
 
-    def test_should_access_by_non_author_forbidden(self):
+    def test_should_forbid_non_author_from_deleting_answer(self):
         self.client.login(username="user2", password="pass123")
         response = self.client.get(self.delete_url)
         self.assertEqual(response.status_code, 403)
 
-    def test_should_access_by_author_renders_confirmation_page(self):
+    def test_should_show_answer_delete_confirmation_to_author(self):
         self.client.login(username="user1", password="pass123")
         response = self.client.get(self.delete_url)
         self.assertEqual(response.status_code, 200)
@@ -361,7 +361,7 @@ class TestsAnswerDeleteView(TestCase):
         self.assertContains(response, self.answer.content)
         self.assertTemplateUsed(response, "forum/answer_confirm_delete.html")
 
-    def test_should_successful_answer_deletion(self):
+    def test_should_delete_answer_on_post_by_author(self):
         self.client.login(username="user1", password="pass123")
         response = self.client.post(self.delete_url)
         with self.assertRaises(Answer.DoesNotExist):
@@ -369,12 +369,12 @@ class TestsAnswerDeleteView(TestCase):
         expected_url = reverse("question_detail", kwargs={"question_id": self.question.pk})
         self.assertRedirects(response, expected_url)
 
-    def test_should_context_contains_answer(self):
+    def test_should_include_answer_in_delete_view_context(self):
         self.client.login(username="user1", password="pass123")
         response = self.client.get(self.delete_url)
         self.assertEqual(response.context["answer"], self.answer)
 
-class TestsAnswerDetailView(TestCase):
+class TestAnswerDetailView(TestCase):
     def setUp(self):
         self.client = Client()
         self.user1 = User.objects.create_user(username="user1", email='test1@example.com', password="pass123")
@@ -394,22 +394,22 @@ class TestsAnswerDetailView(TestCase):
         
         self.detail_url = reverse("answer_detail", kwargs={"answer_id": self.answer.pk})
 
-    def test_should_detail_view_is_accessible_without_login(self):
+    def test_should_allow_access_to_answer_detail_without_login(self):
         response = self.client.get(self.detail_url)
         self.assertEqual(response.status_code, 200)
 
-    def test_should_detail_view_renders_correct_template(self):
+    def test_should_render_answer_detail_template(self):
         response = self.client.get(self.detail_url)
         self.assertTemplateUsed(response, "forum/answer_detail.html")
         self.assertContains(response, self.answer.content)
         self.assertContains(response, self.question.title)
 
-    def test_should_context_contains_answer_and_question(self):
+    def test_should_include_answer_and_question_in_detail_context(self):
         response = self.client.get(self.detail_url)
         self.assertEqual(response.context["answer"], self.answer)
         self.assertEqual(response.context["question"], self.question)
 
-    def test_should_vote_counts_in_context(self):
+    def test_should_include_vote_counts_in_answer_context(self):
         answer_ct = ContentType.objects.get_for_model(self.answer)
     
         Vote.objects.create(content_type=answer_ct, object_id=self.answer.pk, user=self.user1, vote_type=1)
@@ -493,7 +493,7 @@ class TestsAnswerDetailView(TestCase):
         self.assertEqual(Comment.objects.count(), 0)
 
 
-class TestsCommentUpdateView(TestCase):
+class TestCommentUpdateView(TestCase):
     def setUp(self):
         self.author = User.objects.create_user(username="author", email='test@example.com', password="testpass123")
         self.other_user = User.objects.create_user(username="other", email='test1@example.com', password="testpass123")
@@ -541,7 +541,7 @@ class TestsCommentUpdateView(TestCase):
             reverse("answer_detail", kwargs={"answer_id": self.answer.id})
         )
 
-class TestsCommentDeleteView(TestCase):
+class TestCommentDeleteView(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='user1', email='test1@example.com', password='pass')
         self.other_user = User.objects.create_user(username='user2', email='test@example.com', password='pass')
@@ -581,7 +581,7 @@ class TestsCommentDeleteView(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Are you sure you want to delete this comment?")
 
-class CommentReplyTests(TestCase):
+class TestCommentReplyView(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="john", email='test@example.com', password="pass123")
         self.question = Question.objects.create(
