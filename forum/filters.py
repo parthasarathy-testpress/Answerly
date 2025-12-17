@@ -3,32 +3,31 @@ import django_filters
 from taggit.models import Tag
 from .models import Question, Vote
 
+from django.db import models
+
+class PopularityFilter(models.IntegerChoices):
+    MOST_LIKED = Vote.VoteType.UPVOTE, "Most liked"
+    LEAST_LIKED = Vote.VoteType.DOWNVOTE, "Least liked"
 
 class VoteTypeFilterMixin(django_filters.FilterSet):
     vote_type = django_filters.ChoiceFilter(
-        choices=Vote.VoteType.choices,
-        method="filter_vote_type",
-        empty_label="All votes",
+        choices=PopularityFilter.choices,
+        method="filter_vote_type", 
         required=False,
-        label="Vote type",
+        label="Popularity",
     )
 
     def filter_vote_type(self, queryset, name, value):
         if not value:
             return queryset
 
-        vote_type = int(value)
-        if vote_type == Vote.VoteType.UPVOTE:
-            annotation_name = 'upvotes'
-        elif vote_type == Vote.VoteType.DOWNVOTE:
-            annotation_name = 'downvotes'
+        value_int = int(value)
+        if value_int == Vote.VoteType.UPVOTE:
+            return queryset.order_by("-upvotes", "-created_at")
+        elif value_int == Vote.VoteType.DOWNVOTE:
+            return queryset.order_by("-downvotes", "-created_at")
         else:
             return queryset
-
-        return queryset.annotate(
-            **{annotation_name: Count("votes", filter=Q(votes__vote_type=vote_type))}
-        ).order_by(f"-{annotation_name}", "-created_at")
-
 
 class QuestionFilter(VoteTypeFilterMixin):
     question = django_filters.CharFilter(
