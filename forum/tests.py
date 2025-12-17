@@ -694,3 +694,35 @@ class TestQuestionFilter(TestCase):
     def test_should_clear_search_and_filter_when_no_params(self):
         response = self.client.get(self.url)
         self.assertCountEqual(response.context['questions'], [self.q1, self.q2, self.q3])
+
+    def test_should_order_by_most_liked_when_vote_type_upvote(self):
+        user2 = User.objects.create_user(username="voter2", email="v2@example.com", password="pass123")
+        user3 = User.objects.create_user(username="voter3", email="v3@example.com", password="pass123")
+
+        # q1: 1 upvote, q2: 2 upvotes, q3: 0 upvotes
+        Vote.objects.create(user=self.user, content_object=self.q1, vote_type=Vote.VoteType.UPVOTE)
+        Vote.objects.create(user=self.user, content_object=self.q2, vote_type=Vote.VoteType.UPVOTE)
+        Vote.objects.create(user=user2, content_object=self.q2, vote_type=Vote.VoteType.UPVOTE)
+
+        response = self.client.get(self.url, {"vote_type": Vote.VoteType.UPVOTE})
+        questions = list(response.context["questions"])
+
+        self.assertEqual(questions[0], self.q2)
+        self.assertEqual(questions[1], self.q1)
+        self.assertEqual(questions[2], self.q3)
+
+    def test_should_order_by_least_liked_when_vote_type_downvote(self):
+        user2 = User.objects.create_user(username="voter2", email="v2@example.com", password="pass123")
+        user3 = User.objects.create_user(username="voter3", email="v3@example.com", password="pass123")
+
+        # q1: 2 downvotes, q2: 1 downvote, q3: 0 downvotes
+        Vote.objects.create(user=self.user, content_object=self.q1, vote_type=Vote.VoteType.DOWNVOTE)
+        Vote.objects.create(user=user2, content_object=self.q1, vote_type=Vote.VoteType.DOWNVOTE)
+        Vote.objects.create(user=user3, content_object=self.q2, vote_type=Vote.VoteType.DOWNVOTE)
+
+        response = self.client.get(self.url, {"vote_type": Vote.VoteType.DOWNVOTE})
+        questions = list(response.context["questions"])
+
+        self.assertEqual(questions[0], self.q1)
+        self.assertEqual(questions[1], self.q2)
+        self.assertEqual(questions[2], self.q3)
