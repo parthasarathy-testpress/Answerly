@@ -1,7 +1,7 @@
 from django.db.models import Q, Count
 import django_filters
 from taggit.models import Tag
-from .models import Question, Answer, Vote
+from .models import Question, Answer, Comment, Vote
 
 from django.db import models
 
@@ -63,4 +63,10 @@ class QuestionFilter(VoteTypeFilterMixin):
 class AnswerFilter(VoteTypeFilterMixin):
     class Meta:
         model = Answer
+        fields = ['vote_type']
+
+
+class CommentFilter(VoteTypeFilterMixin):
+    class Meta:
+        model = Comment
         fields = ['vote_type']

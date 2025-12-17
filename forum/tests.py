@@ -874,3 +874,184 @@ class TestAnswerFilter(TestCase):
         # Should return to default ordering
         answers = list(response_without_filter.context["answers"])
         self.assertEqual(answers[0], self.answer3)  # Newest first
+
+
+class TestCommentFilter(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username="tester", email='test@example.com', password="pass123")
+        self.user2 = User.objects.create_user(username="voter2", email="v2@example.com", password="pass123")
+        self.user3 = User.objects.create_user(username="voter3", email="v3@example.com", password="pass123")
+
+        self.question = Question.objects.create(
+            title="Test Question",
+            description="Test Description",
+            author=self.user
+        )
+
+        self.answer = Answer.objects.create(
+            question=self.question,
+            author=self.user,
+            content="Test Answer"
+        )
+
+        # Create comments with different vote counts
+        self.comment1 = Comment.objects.create(
+            content_object=self.answer,
+            author=self.user,
+            content="Comment 1",
+            created_at=timezone.now() - timezone.timedelta(days=2)
+        )
+        self.comment2 = Comment.objects.create(
+            content_object=self.answer,
+            author=self.user,
+            content="Comment 2",
+            created_at=timezone.now() - timezone.timedelta(days=1)
+        )
+        self.comment3 = Comment.objects.create(
+            content_object=self.answer,
+            author=self.user,
+            content="Comment 3",
+            created_at=timezone.now()
+        )
+
+        self.url = reverse(
+            "answer-comments-partial",
+            kwargs={"answer_id": self.answer.pk},
+        )
+
+    def test_should_order_by_most_liked_when_vote_type_upvote(self):
+        # comment1: 1 upvote, comment2: 2 upvotes, comment3: 0 upvotes
+        comment_ct = ContentType.objects.get_for_model(Comment)
+        Vote.objects.create(
+            user=self.user,
+            content_type=comment_ct,
+            object_id=self.comment1.pk,
+            vote_type=Vote.VoteType.UPVOTE
+        )
+        Vote.objects.create(
+            user=self.user,
+            content_type=comment_ct,
+            object_id=self.comment2.pk,
+            vote_type=Vote.VoteType.UPVOTE
+        )
+        Vote.objects.create(
+            user=self.user2,
+            content_type=comment_ct,
+            object_id=self.comment2.pk,
+            vote_type=Vote.VoteType.UPVOTE
+        )
+
+        response = self.client.get(self.url, {"vote_type": Vote.VoteType.UPVOTE})
+        comments = list(response.context["comments"])
+
+        self.assertEqual(comments[0], self.comment2)
+        self.assertEqual(comments[1], self.comment1)
+        self.assertEqual(comments[2], self.comment3)
+
+    def test_should_order_by_least_liked_when_vote_type_downvote(self):
+        # comment1: 2 downvotes, comment2: 1 downvote, comment3: 0 downvotes
+        comment_ct = ContentType.objects.get_for_model(Comment)
+        Vote.objects.create(
+            user=self.user,
+            content_type=comment_ct,
+            object_id=self.comment1.pk,
+            vote_type=Vote.VoteType.DOWNVOTE
+        )
+        Vote.objects.create(
+            user=self.user2,
+            content_type=comment_ct,
+            object_id=self.comment1.pk,
+            vote_type=Vote.VoteType.DOWNVOTE
+        )
+        Vote.objects.create(
+            user=self.user3,
+            content_type=comment_ct,
+            object_id=self.comment2.pk,
+            vote_type=Vote.VoteType.DOWNVOTE
+        )
+
+        response = self.client.get(self.url, {"vote_type": Vote.VoteType.DOWNVOTE})
+        comments = list(response.context["comments"])
+
+        self.assertEqual(comments[0], self.comment1)
+        self.assertEqual(comments[1], self.comment2)
+        self.assertEqual(comments[2], self.comment3)
+
+    def test_should_order_by_created_at_when_no_filter(self):
+        # Without filter, should order by created_at (newest first)
+        response = self.client.get(self.url)
+        comments = list(response.context["comments"])
+
+        self.assertEqual(comments[0], self.comment3)
+        self.assertEqual(comments[1], self.comment2)
+        self.assertEqual(comments[2], self.comment1)
+
+    def test_should_preserve_filter_in_pagination(self):
+        # Create more comments for pagination
+        for i in range(4, 8):
+            Comment.objects.create(
+                content_object=self.answer,
+                author=self.user,
+                content=f"Comment {i}"
+            )
+
+        # Add upvotes to some comments
+        comment_ct = ContentType.objects.get_for_model(Comment)
+        Vote.objects.create(
+            user=self.user,
+            content_type=comment_ct,
+            object_id=self.comment1.pk,
+            vote_type=Vote.VoteType.UPVOTE
+        )
+
+        # Test that filter is preserved when paginating
+        response = self.client.get(self.url, {"vote_type": Vote.VoteType.UPVOTE, "page": "1"})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("filter", response.context)
+        self.assertEqual(response.context["filter"].form["vote_type"].value(), str(Vote.VoteType.UPVOTE))
+
+    def test_should_clear_filter_when_no_vote_type_param(self):
+        comment_ct = ContentType.objects.get_for_model(Comment)
+        Vote.objects.create(
+            user=self.user,
+            content_type=comment_ct,
+            object_id=self.comment1.pk,
+            vote_type=Vote.VoteType.UPVOTE
+        )
+
+        # First request with filter
+        response_with_filter = self.client.get(self.url, {"vote_type": Vote.VoteType.UPVOTE})
+        
+        # Second request without filter (simulating clear button)
+        response_without_filter = self.client.get(self.url)
+        
+        # Should return to default ordering
+        comments = list(response_without_filter.context["comments"])
+        self.assertEqual(comments[0], self.comment3)  # Newest first
+
+    def test_should_only_show_parent_comments_not_replies(self):
+        # Create a reply comment
+        reply = Comment.objects.create(
+            content_object=self.answer,
+            author=self.user,
+            content="Reply comment",
+            parent=self.comment1
+        )
+
+        # Add votes to reply (should not appear in filtered list)
+        comment_ct = ContentType.objects.get_for_model(Comment)
+        Vote.objects.create(
+            user=self.user,
+            content_type=comment_ct,
+            object_id=reply.pk,
+            vote_type=Vote.VoteType.UPVOTE
+        )
+
+        response = self.client.get(self.url, {"vote_type": Vote.VoteType.UPVOTE})
+        comments = list(response.context["comments"])
+
+        # Reply should not be in the list
+        self.assertNotIn(reply, comments)
+        # Only parent comments should be included
+        self.assertEqual(len(comments), 3)
