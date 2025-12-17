@@ -1,10 +1,12 @@
-from django.views.generic import UpdateView, DeleteView, ListView
+from django.views.generic import UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django_filters.views import FilterView
 
 from forum.models import Comment, Answer
 from forum.forms import CommentForm
 from forum.views.mixins import AuthorRequiredMixin
+from forum.filters import CommentFilter
 
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, Q
@@ -43,11 +45,12 @@ class CommentDeleteView(LoginRequiredMixin, AuthorRequiredMixin, DeleteView):
         context['cancel_url'] = reverse_lazy('answer_detail', kwargs={'answer_id': answer.pk})
         return context
 
-class CommentsPartialListView(ListView):
+class CommentsPartialListView(FilterView):
     model = Comment
     template_name = "forum/partials/comment_list.html"
     context_object_name = "comments"
     paginate_by = 3
+    filterset_class = CommentFilter
 
     def dispatch(self, request, *args, **kwargs):
         self.answer = get_object_or_404(Answer, pk=self.kwargs.get("answer_id"))
