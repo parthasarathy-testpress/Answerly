@@ -1,10 +1,35 @@
-from django.db.models import Q
+from django.db.models import Q, Count
 import django_filters
 from taggit.models import Tag
-from .models import Question
+from .models import Question, Vote
 
+from django.db import models
 
-class QuestionFilter(django_filters.FilterSet):
+class PopularityChoice(models.IntegerChoices):
+    MOST_LIKED = Vote.VoteType.UPVOTE, "Most liked"
+    LEAST_LIKED = Vote.VoteType.DOWNVOTE, "Least liked"
+
+class VoteTypeFilterMixin(django_filters.FilterSet):
+    vote_type = django_filters.ChoiceFilter(
+        choices=PopularityChoice.choices,
+        method="filter_vote_type", 
+        required=False,
+        label="Popularity",
+    )
+
+    def filter_vote_type(self, queryset, name, value):
+        if not value:
+            return queryset
+
+        value_int = int(value)
+        if value_int == Vote.VoteType.UPVOTE:
+            return queryset.order_by("-upvotes", "-created_at")
+        elif value_int == Vote.VoteType.DOWNVOTE:
+            return queryset.order_by("-downvotes", "-created_at")
+        else:
+            return queryset
+
+class QuestionFilter(VoteTypeFilterMixin):
     question = django_filters.CharFilter(
         method='filter_question',
     )
@@ -18,7 +43,7 @@ class QuestionFilter(django_filters.FilterSet):
 
     class Meta:
         model = Question
-        fields = ['question', 'tag']
+        fields = ['question', 'tag', 'vote_type']
 
     def filter_question(self, queryset, name, value):
         if value:

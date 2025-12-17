@@ -13,7 +13,7 @@
 
     <form method="get" class="row justify-content-center align-items-center g-2">
 
-      <div class="col-md-6 col-sm-12">
+      <div class="col-md-5 col-sm-12">
         {{ filter.form.question|add_class:"form-control rounded-pill px-4 py-3"|attr:"placeholder:Enter a keyword..." }}
       </div>
 
@@ -21,7 +21,11 @@
         {{ filter.form.tag|add_class:"form-select rounded-pill px-4 py-3" }}
       </div>
 
-      <div class="col-md-1 col-sm-4 d-grid">
+      <div class="col-md-2 col-sm-6">
+        {{ filter.form.vote_type|add_class:"form-select rounded-pill px-4 py-3" }}
+      </div>
+
+      <div class="col-md-1 col-sm-3 d-grid">
         <button 
           type="submit" 
           class="btn btn-light rounded-pill d-flex align-items-center justify-content-center fw-semibold"
@@ -30,7 +34,7 @@
         </button>
       </div>
 
-      <div class="col-md-2 col-sm-6 d-grid">
+      <div class="col-md-1 col-sm-3 d-grid">
         <a 
           href="{% url 'question_list' %}" 
           class="btn btn-outline-light  rounded-pill fw-semibold d-flex align-items-center justify-content-center"

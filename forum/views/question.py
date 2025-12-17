@@ -23,7 +23,7 @@ class QuestionListView(FilterView):
             total_votes=Sum('votes__vote_type', default=0),
             upvotes=Count('votes', filter=Q(votes__vote_type=1)),
             downvotes=Count('votes', filter=Q(votes__vote_type=-1)),
-        ).order_by('-created_at')
+        )
 
 
 class QuestionCreateView(LoginRequiredMixin, CreateView):
