@@ -1,4 +1,9 @@
+{% load vote_tags %}
+
 {% if is_paginated %}
+  {% if request %}
+    {% query_string_exclude_page request as filter_query_string %}
+  {% endif %}
 <nav aria-label="Page navigation">
   <ul class="pagination justify-content-center">
     {% if page_obj.has_previous %}
@@ -7,7 +12,7 @@
           class="page-link"
           href="?page={{ page_obj.previous_page_number }}{% if filter_query_string %}&{{ filter_query_string }}{% endif %}"
           {% if htmx_target %}
-            hx-get="{% if base_url %}{{ base_url }}{% else %}{{ partial_url|default:'' }}{% endif %}?page={{ page_obj.previous_page_number }}{% if filter_query_string %}&{{ filter_query_string }}{% endif %}"
+            hx-get="{% if request %}{{ request.path }}{% else %}{{ partial_url|default:'' }}{% endif %}?page={{ page_obj.previous_page_number }}{% if filter_query_string %}&{{ filter_query_string }}{% endif %}"
             hx-target="{{ htmx_target }}"
             hx-swap="innerHTML"
           {% endif %}
@@ -21,7 +26,7 @@
         <a class="page-link"
            href="?page={{ num }}{% if filter_query_string %}&{{ filter_query_string }}{% endif %}"
            {% if htmx_target %}
-             hx-get="{% if base_url %}{{ base_url }}{% else %}{{ partial_url|default:'' }}{% endif %}?page={{ num }}{% if filter_query_string %}&{{ filter_query_string }}{% endif %}"
+             hx-get="{% if request %}{{ request.path }}{% else %}{{ partial_url|default:'' }}{% endif %}?page={{ num }}{% if filter_query_string %}&{{ filter_query_string }}{% endif %}"
              hx-target="{{ htmx_target }}"
              hx-swap="innerHTML"
            {% endif %}
@@ -35,7 +40,7 @@
         <a class="page-link"
            href="?page={{ page_obj.next_page_number }}{% if filter_query_string %}&{{ filter_query_string }}{% endif %}"
            {% if htmx_target %}
-             hx-get="{% if base_url %}{{ base_url }}{% else %}{{ partial_url|default:'' }}{% endif %}?page={{ page_obj.next_page_number }}{% if filter_query_string %}&{{ filter_query_string }}{% endif %}"
+             hx-get="{% if request %}{{ request.path }}{% else %}{{ partial_url|default:'' }}{% endif %}?page={{ page_obj.next_page_number }}{% if filter_query_string %}&{{ filter_query_string }}{% endif %}"
              hx-target="{{ htmx_target }}"
              hx-swap="innerHTML"
            {% endif %}

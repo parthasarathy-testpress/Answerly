@@ -12,7 +12,8 @@ class PopularityChoice(models.IntegerChoices):
 class VoteTypeFilterMixin(django_filters.FilterSet):
     vote_type = django_filters.ChoiceFilter(
         choices=PopularityChoice.choices,
-        method="filter_vote_type", 
+        method="filter_vote_type",
+        empty_label='Filter By Votes', 
         required=False,
         label="Popularity",
     )

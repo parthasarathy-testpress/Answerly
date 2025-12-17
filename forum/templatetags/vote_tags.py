@@ -17,3 +17,16 @@ def get_user_vote(obj, user):
         return obj.get_user_voted_type(user)
     except Exception:
         return 0
+
+
+@register.simple_tag
+def query_string_exclude_page(request):
+    """Build query string from request.GET excluding 'page' parameter."""
+    if not request or not hasattr(request, 'GET'):
+        return ""
+    
+    query_params = request.GET.copy()
+    if 'page' in query_params:
+        del query_params['page']
+    
+    return query_params.urlencode()

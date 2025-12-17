@@ -127,17 +127,5 @@ class AnswerListPartialView(FilterView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["htmx_target"] = "#answer-list"
-        base_url = self.request.path
-        
-        # Build URL with current query parameters for pagination (excluding page)
-        query_params = self.request.GET.copy()
-        if 'page' in query_params:
-            del query_params['page']
-        query_string = query_params.urlencode()
-        
-        context["partial_url"] = f"{base_url}?{query_string}" if query_string else base_url
-        context["base_url"] = base_url
-        context["filter_query_string"] = query_string
-        
         return context
 
