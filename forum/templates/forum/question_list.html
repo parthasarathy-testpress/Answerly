@@ -23,5 +23,16 @@
   {% endfor %}
 </div>
 
-{% include "_pagination.html" %}
+{% if request.user.is_authenticated %}
+  {% include "_pagination.html" %}
+{% else %}
+  {% if is_paginated and page_obj.has_next %}
+    <div class="text-center mt-4">
+      <a href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}" class="btn btn-primary btn-lg">
+        Load More Questions
+      </a>
+      <p class="text-muted mt-2 small">Please login to see more questions</p>
+    </div>
+  {% endif %}
+{% endif %}
 {% endblock %}
