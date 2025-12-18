@@ -45,6 +45,41 @@ class TestQuestionListView(TestCase):
         response_page2 = self.client.get(reverse('question_list') + '?page=2')
         self.assertEqual(len(response_page2.context['questions']), 5)
 
+    def test_should_not_show_pagination_for_unauthenticated_users(self):
+        response = self.client.get(reverse('question_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'pagination', status_code=200)
+        self.assertNotContains(response, 'page-link', status_code=200)
+
+    def test_should_show_load_more_button_for_unauthenticated_users_when_more_pages_exist(self):
+        response = self.client.get(reverse('question_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['is_paginated'])
+        self.assertTrue(response.context['page_obj'].has_next())
+
+        self.assertContains(response, 'Load More Questions', status_code=200)
+        self.assertContains(response, 'Please login to see more questions', status_code=200)
+        
+        login_url = reverse('login')
+        self.assertContains(response, f'href="{login_url}?next=', status_code=200)
+
+    def test_should_not_show_load_more_button_when_no_more_pages(self):
+        response = self.client.get(reverse('question_list') + '?page=2')
+        self.assertEqual(response.status_code, 200)
+        
+        self.assertNotContains(response, 'Load More Questions', status_code=200)
+
+    def test_should_show_pagination_for_authenticated_users(self):
+        self.client.login(username='testuser', password='pass123')
+        response = self.client.get(reverse('question_list'))
+        self.assertEqual(response.status_code, 200)
+        
+        self.assertContains(response, 'pagination', status_code=200)
+        self.assertContains(response, 'page-link', status_code=200)
+        
+        self.assertNotContains(response, 'Load More Questions', status_code=200)
+
+
 class TestQuestionCreateView(TestCase):
     def setUp(self):
         self.client = Client()
