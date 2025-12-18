@@ -2,6 +2,7 @@ from django.views.generic import CreateView, UpdateView, DeleteView, DetailView
 from django.db.models import Sum, Count, Q
 from django.urls import reverse_lazy
 from django.core.paginator import Paginator
+import json
 
 from forum.models import Question
 from forum.forms import QuestionForm
@@ -9,6 +10,7 @@ from forum.views.mixins import AuthorRequiredMixin
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django_filters.views import FilterView
 from ..filters import QuestionFilter
+from taggit.models import Tag
 
 
 class QuestionListView(FilterView):
@@ -24,6 +26,25 @@ class QuestionListView(FilterView):
             upvotes=Count('votes', filter=Q(votes__vote_type=1)),
             downvotes=Count('votes', filter=Q(votes__vote_type=-1)),
         ).order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tags_json'] = self.get_tags_as_json()
+        context['selected_tag_ids'] = self.get_selected_tag_ids_as_json()
+        return context
+
+    def get_tags_as_json(self):
+        tags_queryset = Tag.objects.all().order_by('name')
+        tags_data = [{'id': tag.id, 'name': tag.name} for tag in tags_queryset]
+        return json.dumps(tags_data)
+
+    def get_selected_tag_ids_as_json(self):
+        selected_tag_ids = [
+            int(tag_id)
+            for tag_id in self.request.GET.getlist('tag')
+            if tag_id.isdigit()
+        ]
+        return json.dumps(selected_tag_ids)
 
 
 class QuestionCreateView(LoginRequiredMixin, CreateView):

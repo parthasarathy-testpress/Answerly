@@ -17,8 +17,71 @@
         {{ filter.form.question|add_class:"form-control rounded-pill px-4 py-3"|attr:"placeholder:Enter a keyword..." }}
       </div>
 
-      <div class="col-md-3 col-sm-8">
-        {{ filter.form.tag|add_class:"form-select rounded-pill px-4 py-3" }}
+      <div 
+        class="col-md-3 col-sm-8" 
+        id="tag-multi-select"
+        x-data="tagMultiSelect()"
+      >
+        <script type="application/json" id="tags-data">{{ tags_json|safe }}</script>
+        <script type="application/json" id="selected-ids-data">{{ selected_tag_ids|safe }}</script>
+        <div class="position-relative">
+          <div 
+            class="form-control rounded-pill px-4 py-3 d-flex flex-wrap align-items-center gap-2" 
+            style="min-height: 48px; cursor: pointer;"
+            @click="toggleDropdown()"
+            @click.away="isOpen = false"
+          >
+            <template x-if="selectedTags.length === 0">
+              <span class="text-muted small">Select Tags...</span>
+            </template>
+            <template x-for="tag in selectedTags" :key="tag.id">
+              <span class="badge bg-secondary d-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                <span x-text="tag.name"></span>
+                <i class="bi bi-x-circle" @click.stop="toggleTag(tag)" style="cursor: pointer; font-size: 0.7rem;"></i>
+              </span>
+            </template>
+            <i class="bi bi-chevron-down ms-auto" :class="{'bi-chevron-up': isOpen}"></i>
+          </div>
+          
+          <div 
+            x-show="isOpen"
+            x-cloak
+            x-transition
+            class="position-absolute w-100 bg-white border rounded mt-1 shadow-lg"
+            style="border-radius: 0.5rem !important; max-height: 250px; overflow-y: auto; z-index: 1000; top: 100%;"
+          >
+            <div class="p-2 border-bottom">
+              <input 
+                type="text" 
+                class="form-control form-control-sm" 
+                placeholder="Search tags..."
+                x-model="searchQuery"
+                @click.stop
+              >
+            </div>
+            <div class="p-1">
+              <template x-for="tag in filteredTags" :key="tag.id">
+                <div 
+                  class="px-3 py-2 d-flex align-items-center tag-option"
+                  style="cursor: pointer;"
+                  @click.stop="toggleTag(tag)"
+                  :class="{'bg-primary text-white': isSelected(tag), 'text-dark': !isSelected(tag)}"
+                >
+                  <span class="small" x-text="tag.name"></span>
+                  <i class="bi bi-check-circle ms-auto" x-show="isSelected(tag)"></i>
+                </div>
+              </template>
+              <template x-if="filteredTags.length === 0">
+                <div class="px-3 py-2 text-muted small text-center">No tags found</div>
+              </template>
+            </div>
+          </div>
+          
+          <!-- Hidden inputs for form submission -->
+          <template x-for="tag in selectedTags" :key="tag.id">
+            <input type="hidden" name="{{ filter.form.tag.name }}" :value="tag.id">
+          </template>
+        </div>
       </div>
 
       <div class="col-md-2 col-sm-6">
@@ -45,3 +108,75 @@
     </form>
   </div>
 </section>
+
+<script>
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('tagMultiSelect', () => ({
+      isOpen: false,
+      searchQuery: '',
+      allTags: [],
+      selectedTags: [],
+      
+      init() {
+        // Initialize tags from script tags
+        const element = this.$el;
+        const tagsScript = element.querySelector('#tags-data');
+        const selectedIdsScript = element.querySelector('#selected-ids-data');
+        
+        const tagsJson = tagsScript ? tagsScript.textContent.trim() : '[]';
+        const selectedIdsJson = selectedIdsScript ? selectedIdsScript.textContent.trim() : '[]';
+        
+        try {
+          this.allTags = JSON.parse(tagsJson);
+          const selectedIds = JSON.parse(selectedIdsJson);
+          this.selectedTags = this.allTags.filter(tag => selectedIds.includes(tag.id));
+        } catch (e) {
+          console.error('Error initializing tags:', e);
+          console.error('Tags JSON:', tagsJson);
+          console.error('Selected IDs JSON:', selectedIdsJson);
+          this.allTags = [];
+          this.selectedTags = [];
+        }
+      },
+      
+      get filteredTags() {
+        if (!this.searchQuery) {
+          return this.allTags;
+        }
+        const query = this.searchQuery.toLowerCase();
+        return this.allTags.filter(tag => 
+          tag.name.toLowerCase().includes(query)
+        );
+      },
+      
+      toggleDropdown() {
+        this.isOpen = !this.isOpen;
+      },
+      
+      toggleTag(tag) {
+        const index = this.selectedTags.findIndex(t => t.id === tag.id);
+        if (index > -1) {
+          this.selectedTags.splice(index, 1);
+        } else {
+          this.selectedTags.push(tag);
+        }
+      },
+      
+      isSelected(tag) {
+        return this.selectedTags.some(t => t.id === tag.id);
+      }
+    }));
+  });
+</script>
+
+<style>
+  [x-cloak] {
+    display: none !important;
+  }
+  .tag-option:hover {
+    background-color: #f8f9fa;
+  }
+  .tag-option.bg-primary:hover {
+    background-color: #0b5ed7 !important;
+  }
+</style>

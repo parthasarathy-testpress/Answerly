@@ -35,11 +35,11 @@ class QuestionFilter(VoteTypeFilterMixin):
         method='filter_question',
     )
 
-    tag = django_filters.ModelChoiceFilter(
+    tag = django_filters.ModelMultipleChoiceFilter(
         queryset=Tag.objects.all().order_by('name'),
         method='filter_tag',
-        empty_label='All Tags',
         required=False,
+        label="Tags",
     )
 
     class Meta:
@@ -57,7 +57,7 @@ class QuestionFilter(VoteTypeFilterMixin):
     def filter_tag(self, queryset, name, value):
         if not value:
             return queryset
-        return queryset.filter(tags__in=[value])
+        return queryset.filter(tags__in=value).distinct()
 
 
 class AnswerFilter(VoteTypeFilterMixin):
