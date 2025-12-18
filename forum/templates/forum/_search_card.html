@@ -1,4 +1,4 @@
-{% load widget_tweaks vote_tags %}
+{% load widget_tweaks %}
 <section 
   class="d-flex align-items-center justify-content-center mb-5 text-center text-white"
   style="
@@ -17,15 +17,7 @@
         {{ filter.form.question|add_class:"form-control rounded-pill px-4 py-3"|attr:"placeholder:Enter a keyword..." }}
       </div>
 
-      {% get_selected_tag_ids request as selected_tag_ids_json %}
-      <div 
-        class="col-md-3 col-sm-8"
-        x-data="tagMultiSelect(
-          '{{ filter.form.tag.field.queryset|tags_to_json|safe }}',
-          '{{ selected_tag_ids_json|safe }}'
-        )"
-        x-init="initTags()"
-      >
+      <div class="col-md-3 col-sm-8" x-data="tagMultiSelect()" x-init="initTags()">
         <div class="position-relative">
           <div 
             class="form-control rounded-pill px-4 py-3 d-flex flex-wrap align-items-center gap-2" 
@@ -36,21 +28,15 @@
             <template x-if="selectedTags.length === 0">
               <span class="text-muted small">Select Tags...</span>
             </template>
-
             <template x-for="tag in selectedTags" :key="tag.id">
               <span class="badge bg-secondary d-flex align-items-center gap-1" style="font-size: 0.75rem;">
                 <span x-text="tag.name"></span>
-                <i 
-                  class="bi bi-x-circle"
-                  @click.stop="toggleTag(tag)"
-                  style="cursor: pointer; font-size: 0.7rem;"
-                ></i>
+                <i class="bi bi-x-circle" @click.stop="toggleTag(tag)" style="cursor: pointer; font-size: 0.7rem;"></i>
               </span>
             </template>
-
-            <i class="bi bi-chevron-down ms-auto" :class="{ 'bi-chevron-up': isOpen }"></i>
+            <i class="bi bi-chevron-down ms-auto" :class="{'bi-chevron-up': isOpen}"></i>
           </div>
-
+          
           <div 
             x-show="isOpen"
             x-transition
@@ -59,34 +45,27 @@
           >
             <div class="p-2 border-bottom">
               <input 
-                type="text"
-                class="form-control form-control-sm"
+                type="text" 
+                class="form-control form-control-sm" 
                 placeholder="Search tags..."
                 x-model="searchQuery"
                 @click.stop
               >
             </div>
-
             <div class="p-1">
               <template x-for="tag in filteredTags" :key="tag.id">
                 <div 
                   class="px-3 py-2 d-flex align-items-center tag-option"
                   style="cursor: pointer;"
                   @click.stop="toggleTag(tag)"
-                  :class="{
-                    'bg-primary text-white': isSelected(tag),
-                    'text-dark': !isSelected(tag)
-                  }"
+                  :class="{'bg-primary text-white': isSelected(tag), 'text-dark': !isSelected(tag)}"
                 >
                   <span class="small" x-text="tag.name"></span>
                   <i class="bi bi-check-circle ms-auto" x-show="isSelected(tag)"></i>
                 </div>
               </template>
-
               <template x-if="filteredTags.length === 0">
-                <div class="px-3 py-2 text-muted small text-center">
-                  No tags found
-                </div>
+                <div class="px-3 py-2 text-muted small text-center">No tags found</div>
               </template>
             </div>
           </div>
@@ -124,41 +103,54 @@
 </section>
 
 <script>
+  // Store tags data globally so Alpine can access it
+  window.tagsData = {{ tags_json|safe }};
+  window.selectedTagIds = {{ selected_tag_ids|safe }};
+</script>
+
+<script>
   document.addEventListener('alpine:init', () => {
-    Alpine.data('tagMultiSelect', (tagsJson, selectedIdsJson) => ({
+    Alpine.data('tagMultiSelect', () => ({
       isOpen: false,
       searchQuery: '',
       allTags: [],
       selectedTags: [],
-
+      
       initTags() {
+        // Initialize tags from global data (always a JSON string from template)
         try {
-          this.allTags = JSON.parse(tagsJson || '[]');
-          const selectedIds = JSON.parse(selectedIdsJson || '[]');
-          this.selectedTags = this.allTags.filter(tag =>
-            selectedIds.includes(tag.id)
-          );
+          this.allTags = typeof window.tagsData === 'string' ? JSON.parse(window.tagsData) : (window.tagsData || []);
         } catch (e) {
-          console.error('Error initializing tags:', e);
+          console.error('Error parsing tags data:', e);
           this.allTags = [];
-          this.selectedTags = [];
         }
+        
+        // Get initially selected tags (always a JSON string from template)
+        let selectedIds = [];
+        try {
+          selectedIds = typeof window.selectedTagIds === 'string' ? JSON.parse(window.selectedTagIds) : (window.selectedTagIds || []);
+        } catch (e) {
+          selectedIds = [];
+        }
+        
+        // Filter selected tags
+        this.selectedTags = this.allTags.filter(tag => selectedIds.includes(tag.id));
       },
-
+      
       get filteredTags() {
         if (!this.searchQuery) {
           return this.allTags;
         }
         const query = this.searchQuery.toLowerCase();
-        return this.allTags.filter(tag =>
+        return this.allTags.filter(tag => 
           tag.name.toLowerCase().includes(query)
         );
       },
-
+      
       toggleDropdown() {
         this.isOpen = !this.isOpen;
       },
-
+      
       toggleTag(tag) {
         const index = this.selectedTags.findIndex(t => t.id === tag.id);
         if (index > -1) {
@@ -167,7 +159,7 @@
           this.selectedTags.push(tag);
         }
       },
-
+      
       isSelected(tag) {
         return this.selectedTags.some(t => t.id === tag.id);
       }
