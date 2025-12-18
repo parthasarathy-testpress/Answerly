@@ -17,7 +17,13 @@
         {{ filter.form.question|add_class:"form-control rounded-pill px-4 py-3"|attr:"placeholder:Enter a keyword..." }}
       </div>
 
-      <div class="col-md-3 col-sm-8" x-data="tagMultiSelect()" x-init="initTags()">
+      <div 
+        class="col-md-3 col-sm-8" 
+        id="tag-multi-select"
+        x-data="tagMultiSelect()"
+      >
+        <script type="application/json" id="tags-data">{{ tags_json|safe }}</script>
+        <script type="application/json" id="selected-ids-data">{{ selected_tag_ids|safe }}</script>
         <div class="position-relative">
           <div 
             class="form-control rounded-pill px-4 py-3 d-flex flex-wrap align-items-center gap-2" 
@@ -39,6 +45,7 @@
           
           <div 
             x-show="isOpen"
+            x-cloak
             x-transition
             class="position-absolute w-100 bg-white border rounded mt-1 shadow-lg"
             style="border-radius: 0.5rem !important; max-height: 250px; overflow-y: auto; z-index: 1000; top: 100%;"
@@ -103,12 +110,6 @@
 </section>
 
 <script>
-  // Store tags data globally so Alpine can access it
-  window.tagsData = {{ tags_json|safe }};
-  window.selectedTagIds = {{ selected_tag_ids|safe }};
-</script>
-
-<script>
   document.addEventListener('alpine:init', () => {
     Alpine.data('tagMultiSelect', () => ({
       isOpen: false,
@@ -116,25 +117,26 @@
       allTags: [],
       selectedTags: [],
       
-      initTags() {
-        // Initialize tags from global data (always a JSON string from template)
+      init() {
+        // Initialize tags from script tags
+        const element = this.$el;
+        const tagsScript = element.querySelector('#tags-data');
+        const selectedIdsScript = element.querySelector('#selected-ids-data');
+        
+        const tagsJson = tagsScript ? tagsScript.textContent.trim() : '[]';
+        const selectedIdsJson = selectedIdsScript ? selectedIdsScript.textContent.trim() : '[]';
+        
         try {
-          this.allTags = typeof window.tagsData === 'string' ? JSON.parse(window.tagsData) : (window.tagsData || []);
+          this.allTags = JSON.parse(tagsJson);
+          const selectedIds = JSON.parse(selectedIdsJson);
+          this.selectedTags = this.allTags.filter(tag => selectedIds.includes(tag.id));
         } catch (e) {
-          console.error('Error parsing tags data:', e);
+          console.error('Error initializing tags:', e);
+          console.error('Tags JSON:', tagsJson);
+          console.error('Selected IDs JSON:', selectedIdsJson);
           this.allTags = [];
+          this.selectedTags = [];
         }
-        
-        // Get initially selected tags (always a JSON string from template)
-        let selectedIds = [];
-        try {
-          selectedIds = typeof window.selectedTagIds === 'string' ? JSON.parse(window.selectedTagIds) : (window.selectedTagIds || []);
-        } catch (e) {
-          selectedIds = [];
-        }
-        
-        // Filter selected tags
-        this.selectedTags = this.allTags.filter(tag => selectedIds.includes(tag.id));
       },
       
       get filteredTags() {
@@ -168,6 +170,9 @@
 </script>
 
 <style>
+  [x-cloak] {
+    display: none !important;
+  }
   .tag-option:hover {
     background-color: #f8f9fa;
   }
