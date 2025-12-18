@@ -29,16 +29,22 @@ class QuestionListView(FilterView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Get tags from filter queryset and convert to JSON
+        context['tags_json'] = self.get_tags_as_json()
+        context['selected_tag_ids'] = self.get_selected_tag_ids_as_json()
+        return context
+
+    def get_tags_as_json(self):
         tags_queryset = Tag.objects.all().order_by('name')
         tags_data = [{'id': tag.id, 'name': tag.name} for tag in tags_queryset]
-        context['tags_json'] = json.dumps(tags_data)
-        
-        # Get selected tag IDs from request
-        selected_tag_ids = [int(tag_id) for tag_id in self.request.GET.getlist('tag') if tag_id.isdigit()]
-        context['selected_tag_ids'] = json.dumps(selected_tag_ids)
-        
-        return context
+        return json.dumps(tags_data)
+
+    def get_selected_tag_ids_as_json(self):
+        selected_tag_ids = [
+            int(tag_id)
+            for tag_id in self.request.GET.getlist('tag')
+            if tag_id.isdigit()
+        ]
+        return json.dumps(selected_tag_ids)
 
 
 class QuestionCreateView(LoginRequiredMixin, CreateView):
